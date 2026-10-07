@@ -70,6 +70,19 @@ class WebPushIntegrationTest {
         mvc.perform(get("/healthz")).andExpect(status().isOk()).andExpect(jsonPath("$.status").value("ok"));
         mvc.perform(get("/api/web-push/config").header("Authorization","Bearer "+token)).andExpect(status().isOk()).andExpect(jsonPath("$.enabled").value(true));
     }
+    @Test void installationGuideIsPublicWhilePersonalDataStaysProtected() throws Exception {
+        mvc.perform(get("/install.html")).andExpect(status().isOk())
+            .andExpect(content().contentTypeCompatibleWith("text/html"))
+            .andExpect(header().string("Cache-Control", "no-store"))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("아이폰에 PILL 추가하기")));
+        for (var path : List.of("/install.css", "/install.js", "/icons/pill-install-qr.svg", "/icons/pill-install-qr.png")) {
+            mvc.perform(get(path)).andExpect(status().isOk());
+        }
+        mvc.perform(get("/api/supplements")).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/scans")).andExpect(status().isUnauthorized());
+        mvc.perform(post("/install.html")).andExpect(status().is4xxClientError());
+        mvc.perform(get("/private-install.html")).andExpect(status().is4xxClientError());
+    }
     @Test void rejectsOtherUsersDeviceAndProduct() throws Exception {
         var state=connect("owner");var stranger=users.save(new User(UUID.randomUUID()+"@example.com","hash"));var strangerToken=sessions.issue(stranger).token();
         mvc.perform(get("/api/web-push/subscriptions/"+state.id()).header("Authorization","Bearer "+strangerToken)).andExpect(status().isNotFound());
