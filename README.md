@@ -1,5 +1,7 @@
 # PILL
 
+[![PILL CI](https://github.com/kimyoungsu61/PILL/actions/workflows/ci.yml/badge.svg)](https://github.com/kimyoungsu61/PILL/actions/workflows/ci.yml)
+
 영양제 라벨 분석과 복용 루틴을 관리하는 앱입니다. Expo 웹 앱과 Spring Boot API를 하나의 Docker 이미지로 배포합니다.
 
 - 라벨 이미지 분석, 회사·제품·성분 정보 확인 및 수정
@@ -63,7 +65,7 @@ mvn --batch-mode --no-transfer-progress verify
 
 ## Railway 배포
 
-기존 서버 서비스의 소스를 이 저장소의 `main`에 연결하고 **Wait for CI**를 켜면 검사 통과 후 자동 배포할 수 있습니다. Dockerfile과 `railway.toml`은 저장소 루트에 있습니다.
+기존 PILL 서버는 이 저장소의 `main`에 연결되어 있으며 **Wait for CI**가 켜져 있습니다. main 커밋의 GitHub Actions 검사가 통과하면 Railway가 자동 배포합니다. Dockerfile과 `railway.toml`은 저장소 루트에 있습니다.
 
 DB 연결, Gemini 키, 웹 푸시 VAPID 키는 Railway 서비스 환경 변수로 관리합니다. MySQL은 별도 서비스와 영구 볼륨을 사용합니다. 웹 푸시는 HTTPS 환경과 사용자 알림 허용이 필요하며, 아이폰에서는 홈 화면에 설치한 웹 앱에서 사용합니다.
 
