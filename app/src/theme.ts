@@ -2,19 +2,19 @@ import type { ViewStyle } from 'react-native';
 import type { DoseStatus } from './api/types';
 
 const neutralColors = {
-  background: '#F5F7FC',
+  background: '#F7F8FA',
   surface: '#FFFFFF',
   surfaceElevated: '#FFFFFF',
-  surfaceMuted: '#F1F4FA',
-  ink: '#17234D',
-  inkSoft: '#405073',
-  muted: '#64708C',
-  faint: '#8993A9',
-  line: '#E2E7F1',
+  surfaceMuted: '#F2F4F7',
+  ink: '#202733',
+  inkSoft: '#4D5867',
+  muted: '#687382',
+  faint: '#A0A8B2',
+  line: '#E8EBEF',
   primary: '#385BCE',
   primaryText: '#FFFFFF',
   active: '#385BCE',
-  activeSoft: '#EAF0FF',
+  activeSoft: '#EDF2FD',
   completed: '#1D8A68',
   completedSoft: '#E6F6EF',
   warning: '#9A631A',
@@ -53,11 +53,11 @@ export const spacing = {
 };
 
 export const radius = {
-  sm: 10,
-  md: 12,
-  lg: 16,
-  xl: 20,
-  xxl: 24,
+  sm: 8,
+  md: 10,
+  lg: 12,
+  xl: 16,
+  xxl: 20,
 };
 
 export const shadow = {
@@ -81,27 +81,27 @@ export const type = {
   hero: {
     color: colors.ink,
     fontSize: 28,
-    fontWeight: '900' as const,
+    fontWeight: '700' as const,
     letterSpacing: -0.8,
     lineHeight: 36,
   },
   title: {
     color: colors.ink,
     fontSize: 23,
-    fontWeight: '900' as const,
+    fontWeight: '700' as const,
     letterSpacing: -0.5,
     lineHeight: 31,
   },
   section: {
     color: colors.ink,
     fontSize: 17,
-    fontWeight: '900' as const,
+    fontWeight: '700' as const,
     letterSpacing: -0.2,
   },
   body: {
     color: colors.muted,
-    fontSize: 13,
-    lineHeight: 20,
+    fontSize: 14,
+    lineHeight: 23,
   },
   meta: {
     color: colors.muted,
@@ -110,7 +110,7 @@ export const type = {
   },
   actionLabel: {
     fontSize: 14,
-    fontWeight: '800' as const,
+    fontWeight: '700' as const,
   },
 };
 

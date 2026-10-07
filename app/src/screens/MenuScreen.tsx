@@ -63,7 +63,7 @@ const menuInfo: Record<string, MenuInfo> = {
   },
   about: {
     title: '앱 정보',
-    body: 'PILL은 영양제 라벨과 복용 루틴을 정리하는 MVP입니다.',
+    body: 'PILL은 영양제 정보와 매일의 복용 기록을 관리하는 앱입니다.',
     items: ['AI 인식 결과는 원본 라벨과 대조해 주세요.', '복용 안내는 참고용이며 치료 효과를 판단하지 않습니다.', '스캔, 저장, 복용 체크 기능을 우선 제공합니다.'],
   },
 };
@@ -106,7 +106,7 @@ export default function MenuScreen() {
       items: [
         '이 이메일은 PILL 로그인과 복용 기록 동기화 기준입니다.',
         '영양제 보관함과 복용 기록은 같은 계정에서 이어집니다.',
-        '알림 권한과 예약은 현재 사용 중인 기기에만 저장됩니다.',
+        '복용 알림은 기기별로 설정할 수 있습니다.',
         '이 기기에서 로그아웃하려면 메뉴 하단의 로그아웃을 이용해 주세요.',
       ],
     });
@@ -117,7 +117,6 @@ export default function MenuScreen() {
       <ScrollView contentContainerStyle={styles.content} style={styles.screen}>
         <View style={[styles.rail, { maxWidth: contentRailWidth(width) }]}>
           <View style={styles.header}>
-            <Text style={styles.kicker}>YOUR PILL</Text>
             <Text style={styles.title}>설정</Text>
             <Text style={styles.subtitle}>알림과 복용 기록을 관리해요.</Text>
           </View>
@@ -126,7 +125,6 @@ export default function MenuScreen() {
             <Pressable accessibilityRole="button" accessibilityLabel="계정 정보" onPress={openAccountManagement} style={styles.profileMain}>
               <View style={styles.avatar}><Text style={styles.profileInitial}>P</Text></View>
               <View style={styles.profileText}>
-                <Text style={styles.profileLabel}>ACCOUNT</Text>
                 <Text style={styles.profileName}>내 계정</Text>
                 <Text numberOfLines={1} style={styles.email}>{email ?? '로그인됨'}</Text>
               </View>
@@ -134,24 +132,24 @@ export default function MenuScreen() {
             </Pressable>
           </RitualSurface>
 
-          <MenuSection eyebrow="ROUTINE" title="알림과 복용">
+          <MenuSection title="알림과 복용">
             <MenuRow
-              icon={<Bell size={21} color={colors.active} strokeWidth={2.5} />}
+              icon={<Bell size={21} color={colors.active} strokeWidth={1.8} />}
               title="알림 설정"
-              body="기기 권한과 제품별 복용 알림 관리"
+              body="복용 시간에 맞춰 알림 받기"
               onPress={() => navigation.navigate('NotificationSettings')}
             />
             <MenuRow
-              icon={<History size={21} color={colors.active} strokeWidth={2.5} />}
+              icon={<History size={21} color={colors.active} strokeWidth={1.8} />}
               title="복용 기록"
-              body="완료·건너뜀·미복용 내역을 날짜별로 확인"
+              body="날짜별 복용 내역 확인"
               onPress={() => navigation.navigate('DoseHistory')}
             />
           </MenuSection>
 
-          <MenuSection eyebrow="WITH PILL" title="설치와 공유">
+          <MenuSection title="설치와 공유">
             <MenuRow
-              icon={<Share2 size={21} color={colors.active} strokeWidth={2.5} />}
+              icon={<Share2 size={21} color={colors.active} strokeWidth={1.8} />}
               title="앱 설치 · 친구에게 공유"
               body="홈 화면 설치 안내와 공유 링크·QR"
               onPress={() => void openInstallGuide()}
@@ -162,32 +160,32 @@ export default function MenuScreen() {
             <Text style={styles.moreButtonText}>{showMore ? '기타 기능 접기 −' : '기타 기능 보기 +'}</Text>
           </Pressable>
           {showMore ? <>
-          <MenuSection eyebrow="CABINET DATA" title="보관함 데이터">
+          <MenuSection title="보관함 데이터">
             <MenuRow
-              icon={<ScanSearch size={21} color={colors.inkSoft} strokeWidth={2.5} />}
+              icon={<ScanSearch size={21} color={colors.inkSoft} strokeWidth={1.8} />}
               title="스캔 기록"
               body="이전 라벨 분석과 저장 여부 확인"
               onPress={() => navigation.navigate('ScanHistory')}
             />
             <MenuRow
-              icon={<FileClock size={21} color={colors.inkSoft} strokeWidth={2.5} />}
+              icon={<FileClock size={21} color={colors.inkSoft} strokeWidth={1.8} />}
               title="내보내기"
               body="복용 기록과 영양제 목록을 파일로 정리"
               onPress={() => navigation.navigate('ExportData')}
             />
           </MenuSection>
 
-          <MenuSection eyebrow="GUIDANCE" title="안전과 안내">
+          <MenuSection title="안전과 안내">
             <MenuRow
-              icon={<ShieldCheck size={21} color={colors.completed} strokeWidth={2.5} />}
+              icon={<ShieldCheck size={21} color={colors.completed} strokeWidth={1.8} />}
               title="주의 성분"
               body="알레르기와 주의 문구를 확인"
               onPress={() => setActiveInfo(menuInfo.safety)}
             />
             <MenuRow
-              icon={<CircleHelp size={21} color={colors.completed} strokeWidth={2.5} />}
+              icon={<CircleHelp size={21} color={colors.completed} strokeWidth={1.8} />}
               title="앱 정보"
-              body="PILL MVP와 데이터 안내 확인"
+              body="서비스와 데이터 안내"
               onPress={() => setActiveInfo(menuInfo.about)}
             />
           </MenuSection>
@@ -197,7 +195,7 @@ export default function MenuScreen() {
           <View accessibilityLabel="로그아웃" accessibilityRole="summary" style={styles.logoutSection}>
             <RitualAction
               fullWidth
-              icon={<LogOut size={19} color={colors.danger} strokeWidth={2.5} />}
+              icon={<LogOut size={19} color={colors.danger} strokeWidth={1.8} />}
               label="로그아웃"
               onPress={confirmLogout}
               tone="danger"
@@ -227,10 +225,9 @@ export default function MenuScreen() {
   );
 }
 
-function MenuSection({ eyebrow, title, children }: { eyebrow: string; title: string; children: ReactNode }) {
+function MenuSection({ title, children }: { title: string; children: ReactNode }) {
   return (
     <View accessibilityLabel={title} accessibilityRole="summary" style={styles.section}>
-      <Text style={styles.sectionEyebrow}>{eyebrow}</Text>
       <Text style={styles.sectionTitle}>{title}</Text>
       <RitualSurface padded={false} style={styles.sectionCard}>{children}</RitualSurface>
     </View>
@@ -245,7 +242,7 @@ function MenuRow({ icon, title, body, onPress, tone = 'default' }: MenuRowProps)
         <Text style={[styles.rowTitle, tone === 'danger' && styles.dangerText]}>{title}</Text>
         <Text style={styles.rowBody}>{body}</Text>
       </View>
-      <ChevronRight size={19} color={colors.faint} strokeWidth={2.5} />
+      <ChevronRight size={19} color={colors.faint} strokeWidth={1.8} />
     </Pressable>
   );
 }
@@ -270,13 +267,13 @@ const styles = StyleSheet.create({
   kicker: {
     color: colors.active,
     fontSize: 11,
-    fontWeight: '900',
+    fontWeight: '700',
     letterSpacing: 1.8,
     marginBottom: spacing.sm,
   },
   title: {
     ...type.hero,
-    fontSize: 29,
+    fontSize: 30,
     lineHeight: 38,
   },
   subtitle: {
@@ -297,7 +294,7 @@ const styles = StyleSheet.create({
   avatar: {
     alignItems: 'center',
     backgroundColor: colors.surfaceMuted,
-    borderColor: colors.active,
+    borderColor: colors.line,
     borderRadius: 999,
     borderWidth: 1,
     height: 58,
@@ -307,7 +304,7 @@ const styles = StyleSheet.create({
   profileInitial: {
     color: colors.primary,
     fontSize: 22,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   profileText: {
     flex: 1,
@@ -317,18 +314,18 @@ const styles = StyleSheet.create({
   profileLabel: {
     color: colors.active,
     fontSize: 11,
-    fontWeight: '900',
+    fontWeight: '700',
     letterSpacing: 0.8,
   },
   profileName: {
     color: colors.ink,
     fontSize: 17,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   email: {
     color: colors.muted,
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: '600',
   },
   accountStatusGrid: {
     borderTopColor: colors.line,
@@ -361,7 +358,7 @@ const styles = StyleSheet.create({
     color: colors.inkSoft,
     flex: 1,
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   accountManageRow: {
     alignItems: 'center',
@@ -375,15 +372,15 @@ const styles = StyleSheet.create({
   accountManageText: {
     color: colors.active,
     fontSize: 13,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   section: {
-    marginBottom: spacing.xl,
+    marginBottom: 28,
   },
   sectionEyebrow: {
     color: colors.active,
     fontSize: 10,
-    fontWeight: '900',
+    fontWeight: '700',
     letterSpacing: 1.6,
     marginBottom: spacing.xs,
   },
@@ -397,7 +394,7 @@ const styles = StyleSheet.create({
   row: {
     alignItems: 'center',
     borderBottomColor: colors.line,
-    borderBottomWidth: 1,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     flexDirection: 'row',
     gap: spacing.md,
     minHeight: 78,
@@ -406,7 +403,7 @@ const styles = StyleSheet.create({
   },
   rowIcon: {
     alignItems: 'center',
-    backgroundColor: colors.activeSoft,
+    backgroundColor: 'transparent',
     borderRadius: radius.md,
     height: 42,
     justifyContent: 'center',
@@ -422,8 +419,8 @@ const styles = StyleSheet.create({
   },
   rowTitle: {
     color: colors.ink,
-    fontSize: 16,
-    fontWeight: '900',
+    fontSize: 15,
+    fontWeight: '500',
   },
   dangerText: {
     color: colors.danger,
@@ -435,13 +432,13 @@ const styles = StyleSheet.create({
   },
   moreButton: {
     alignItems: 'center',
-    backgroundColor: colors.activeSoft,
+    backgroundColor: 'transparent',
     borderRadius: radius.lg,
     justifyContent: 'center',
     minHeight: 48,
     marginBottom: spacing.lg,
   },
-  moreButtonText: { color: colors.active, fontSize: 13, fontWeight: '800' },
+  moreButtonText: { color: colors.active, fontSize: 13, fontWeight: '600' },
   logoutSection: {
     backgroundColor: colors.background,
     gap: spacing.sm,
@@ -450,7 +447,7 @@ const styles = StyleSheet.create({
   logoutEyebrow: {
     color: colors.danger,
     fontSize: 10,
-    fontWeight: '900',
+    fontWeight: '700',
     letterSpacing: 1.5,
   },
   logoutTitle: {

@@ -3,7 +3,7 @@ import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensi
 import * as ImagePicker from 'expo-image-picker';
 import { File } from 'expo-file-system';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Camera, Check, CheckCircle2, Image as ImageIcon, Keyboard, ScanLine, Sparkles } from 'lucide-react-native';
+import { Camera, Check, CheckCircle2, Image as ImageIcon, Keyboard, ScanLine } from 'lucide-react-native';
 import { ApiTimeoutError, apiFetch, readableErrorMessage } from '../api/client';
 import type { ScanResult } from '../api/types';
 import { useAuth } from '../auth/AuthContext';
@@ -180,7 +180,6 @@ export default function ImageInputScreen({ navigation }: Props) {
       <ScrollView contentContainerStyle={styles.content} style={styles.screen}>
         <View style={[styles.rail, { maxWidth: contentRailWidth(width) }]}>
           <View style={styles.header}>
-            <Text style={styles.kicker}>LABEL SCAN</Text>
             <Text style={styles.title}>라벨을 차례로 담아주세요</Text>
             <Text style={styles.subtitle}>앞면 한 장으로 제품 정보를 검색합니다. 뒷면을 추가하면 라벨 내용을 직접 읽습니다.</Text>
           </View>
@@ -333,7 +332,7 @@ export default function ImageInputScreen({ navigation }: Props) {
             <RitualAction
               disabled={!canAnalyze}
               fullWidth
-              icon={<Sparkles color={colors.primaryText} size={19} strokeWidth={2.5} />}
+              icon={<ScanLine color={colors.primaryText} size={19} strokeWidth={2.5} />}
               label={isUploading ? 'AI 분석 중' : 'AI 분석 시작'}
               loading={isUploading}
               onPress={() => void upload()}
@@ -445,7 +444,7 @@ const styles = StyleSheet.create({
   kicker: {
     color: colors.active,
     fontSize: 11,
-    fontWeight: '900',
+    fontWeight: '700',
     letterSpacing: 2.2,
   },
   title: {
@@ -486,7 +485,7 @@ const styles = StyleSheet.create({
   captureStepNumber: {
     color: colors.faint,
     fontSize: 10,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   captureStepNumberActive: {
     color: colors.active,
@@ -494,7 +493,7 @@ const styles = StyleSheet.create({
   captureStepTitle: {
     color: colors.faint,
     fontSize: 10,
-    fontWeight: '800',
+    fontWeight: '600',
   },
   captureStepTitleActive: {
     color: colors.ink,
@@ -538,7 +537,7 @@ const styles = StyleSheet.create({
   cameraTitle: {
     color: colors.ink,
     fontSize: 18,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   cameraBody: {
     ...type.meta,
@@ -560,7 +559,7 @@ const styles = StyleSheet.create({
   previewStatusText: {
     color: colors.completed,
     fontSize: 13,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   guidanceCard: {
     flex: 1,
@@ -584,7 +583,7 @@ const styles = StyleSheet.create({
   stepNumberText: {
     color: colors.active,
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   guidanceCopy: {
     flex: 1,
@@ -593,13 +592,13 @@ const styles = StyleSheet.create({
   guidanceEyebrow: {
     color: colors.active,
     fontSize: 10,
-    fontWeight: '900',
+    fontWeight: '700',
     letterSpacing: 1.2,
   },
   guidanceTitle: {
     color: colors.ink,
     fontSize: 19,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   guidanceBody: {
     ...type.body,
@@ -620,7 +619,7 @@ const styles = StyleSheet.create({
   optionalTitle: {
     color: colors.ink,
     fontSize: 17,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   optionalMeta: {
     color: colors.muted,
@@ -644,7 +643,7 @@ const styles = StyleSheet.create({
   completePillText: {
     color: colors.completed,
     fontSize: 10,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   backPreview: {
     backgroundColor: colors.surfaceMuted,
@@ -658,7 +657,7 @@ const styles = StyleSheet.create({
   errorTitle: {
     color: colors.warning,
     fontSize: 16,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   error: {
     color: colors.inkSoft,
@@ -684,7 +683,7 @@ const styles = StyleSheet.create({
   uploadTitle: {
     color: colors.ink,
     fontSize: 17,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   uploadBody: {
     ...type.body,
@@ -712,7 +711,7 @@ const styles = StyleSheet.create({
   modalIcon: {
     alignItems: 'center',
     backgroundColor: colors.cream,
-    borderRadius: 24,
+    borderRadius: 18,
     height: 48,
     justifyContent: 'center',
     width: 48,
@@ -720,7 +719,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     color: colors.ink,
     fontSize: 21,
-    fontWeight: '900',
+    fontWeight: '700',
     lineHeight: 29,
     textAlign: 'center',
   },
@@ -749,7 +748,7 @@ const styles = StyleSheet.create({
   modalGhostText: {
     color: colors.ink,
     fontSize: 14,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   modalPrimaryButton: {
     alignItems: 'center',
@@ -762,7 +761,7 @@ const styles = StyleSheet.create({
   modalPrimaryText: {
     color: colors.primaryText,
     fontSize: 14,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   pressed: {
     opacity: 0.78,

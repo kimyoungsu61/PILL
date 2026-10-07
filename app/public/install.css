@@ -1,47 +1,47 @@
 *{box-sizing:border-box}
-:root{color-scheme:light;--ink:#17234d;--muted:#64708c;--blue:#385bce;--line:#e2e7f1}
-body{margin:0;background:#f5f7fc;color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",sans-serif;line-height:1.65;word-break:keep-all}
+:root{color-scheme:light;--ink:#202733;--muted:#75808e;--blue:#385bce;--line:#e8ebef}
+body{margin:0;background:#f7f8fa;color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",sans-serif;line-height:1.65;word-break:keep-all}
 a{color:var(--blue)}button,input{font:inherit}button,a{-webkit-tap-highlight-color:transparent}button{cursor:pointer}
 [hidden]{display:none!important}
 .page{max-width:1056px;margin:0 auto;padding:0 32px}
 .topbar{display:flex;align-items:center;justify-content:space-between;padding:26px 0;border-bottom:1px solid var(--line)}
-.brand{display:flex;gap:10px;align-items:center;color:var(--ink);font-size:21px;font-weight:850;text-decoration:none;letter-spacing:.8px}
+.brand{display:flex;gap:10px;align-items:center;color:var(--ink);font-size:21px;font-weight:700;text-decoration:none;letter-spacing:.8px}
 .brand img{border-radius:11px}.toplink{font-size:14px;font-weight:700;text-decoration:none}
 .hero{display:grid;grid-template-columns:1.45fr 1fr;gap:60px;align-items:center;padding:64px 0 48px}
-.eyebrow{font-size:11px;font-weight:800;letter-spacing:1.8px;color:var(--blue);margin:0 0 10px}
-h1{font-size:48px;line-height:1.3;letter-spacing:-1.8px;margin:0 0 18px;font-weight:850}
+.eyebrow{font-size:11px;font-weight:600;letter-spacing:1.8px;color:var(--blue);margin:0 0 10px}
+h1{font-size:42px;line-height:1.3;letter-spacing:-1.8px;margin:0 0 18px;font-weight:700}
 .intro{font-size:16px;color:var(--muted);margin:0 0 24px}
 .hero-actions{display:flex;gap:10px;flex-wrap:wrap}
-.button{display:inline-flex;align-items:center;justify-content:center;gap:9px;border:1px solid transparent;border-radius:13px;padding:13px 19px;text-decoration:none;font-size:14px;line-height:1.5;font-weight:750;min-height:48px}
+.button{display:inline-flex;align-items:center;justify-content:center;gap:9px;border:1px solid transparent;border-radius:13px;padding:13px 19px;text-decoration:none;font-size:14px;line-height:1.5;font-weight:600;min-height:48px}
 .primary{background:var(--blue);color:white}.primary:hover{background:#2f4eb5}.secondary{background:#eaf0ff;color:var(--blue)}
 .button:focus-visible,.copy-button:focus-visible,a:focus-visible,summary:focus-visible,input:focus-visible{outline:3px solid #7c96ed;outline-offset:4px}
 .small{font-size:12px;color:var(--muted);line-height:1.7;margin:12px 0 0}
-.app-card{background:#eaf0ff;border:1px solid #dce5ff;border-radius:30px;padding:36px 16px;text-align:center;display:flex;flex-direction:column;align-items:center}
-.app-icon{border-radius:28px;margin-bottom:16px}.app-card>strong{font-size:23px;letter-spacing:1px}.app-card>span{font-size:13px;color:var(--muted);margin-top:3px}
+.app-card{background:#f0f2f5;border:0;border-radius:18px;padding:36px 16px;text-align:center;display:flex;flex-direction:column;align-items:center}
+.app-icon{border-radius:24px;margin-bottom:16px}.app-card>strong{font-size:23px;letter-spacing:1px}.app-card>span{font-size:13px;color:var(--muted);margin-top:3px}
 .feature-chips{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:23px}.feature-chips span{font-size:11px;background:white;padding:5px 10px;border-radius:99px;color:#405073}
 .guide-grid{display:grid;grid-template-columns:1.4fr 1fr;gap:22px;align-items:start}
-.card{background:white;border:1px solid var(--line);border-radius:24px;padding:28px}
+.card{background:white;border:0;border-radius:18px;padding:28px}
 h2{font-size:23px;line-height:1.4;letter-spacing:-.6px;margin:0 0 10px}
 .section-intro{color:var(--muted);font-size:14px;margin:0 0 24px}
 .steps{list-style:none;padding:0;margin:0}.steps li{display:flex;gap:14px;padding:0 0 24px}.steps li:last-child{padding-bottom:0}
-.step-number{background:#eaf0ff;color:var(--blue);height:30px;width:30px;flex-shrink:0;border-radius:10px;text-align:center;font-size:14px;font-weight:800;line-height:30px}
-h3{font-size:15px;line-height:1.6;margin:2px 0 5px;font-weight:750}
+.step-number{background:#eaf0ff;color:var(--blue);height:30px;width:30px;flex-shrink:0;border-radius:10px;text-align:center;font-size:14px;font-weight:600;line-height:30px}
+h3{font-size:15px;line-height:1.6;margin:2px 0 5px;font-weight:600}
 .steps p,.reminder-note p,.android-guide p{font-size:13px;color:var(--muted);margin:0;line-height:1.85}
-strong{font-weight:750}.steps strong,.reminder-note strong,.android-guide strong{color:#405073}
+strong{font-weight:600}.steps strong,.reminder-note strong,.android-guide strong{color:#405073}
 .share-icon{width:20px;height:20px;vertical-align:-4px;flex-shrink:0;margin-left:2px}
 .reminder-note{display:flex;gap:10px;border-radius:16px;background:#f1f8f5;padding:16px;margin-top:26px}
-.note-icon{color:#1d8a68;font-weight:850;margin-top:1px}.reminder-note h3{color:#1d7257;margin:0 0 4px}.reminder-note .small{font-size:11px;margin-top:8px}
+.note-icon{color:#1d8a68;font-weight:700;margin-top:1px}.reminder-note h3{color:#1d7257;margin:0 0 4px}.reminder-note .small{font-size:11px;margin-top:8px}
 .android-guide{border-top:1px solid var(--line);margin-top:20px;padding-top:16px}
 summary{cursor:pointer;font-size:12px;font-weight:700;color:#405073}.android-guide p{margin-top:10px}
 .share-card .button{width:100%}.link-box{margin-top:18px;position:relative}.link-box label{display:block;font-size:11px;color:var(--muted);margin-bottom:7px}
-.link-box input{display:block;background:#f5f7fc;border:1px solid var(--line);border-radius:11px;padding:12px 82px 12px 11px;font-size:12px;color:#405073;width:100%;min-width:0}
-.copy-button{position:absolute;bottom:6px;right:6px;border:0;border-radius:7px;background:#eaf0ff;color:var(--blue);font-size:11px;font-weight:750;padding:8px}
+.link-box input{display:block;background:#f7f8fa;border:1px solid var(--line);border-radius:11px;padding:12px 82px 12px 11px;font-size:12px;color:#405073;width:100%;min-width:0}
+.copy-button{position:absolute;bottom:6px;right:6px;border:0;border-radius:7px;background:#eaf0ff;color:var(--blue);font-size:11px;font-weight:600;padding:8px}
 .share-status{min-height:20px;margin:7px 0 0;font-size:12px;color:var(--blue);line-height:1.6}
 .qr{display:flex;flex-direction:column;align-items:center;margin:16px 0 10px}.qr img{display:block;max-width:100%;height:auto}.qr figcaption{font-size:11px;color:var(--muted);margin-top:8px}
-.qr-download{display:block;text-align:center;font-size:13px;font-weight:750;text-decoration:none;padding:8px;min-height:40px}.share-card>.small{text-align:center;font-size:11px}
+.qr-download{display:block;text-align:center;font-size:13px;font-weight:600;text-decoration:none;padding:8px;min-height:40px}.share-card>.small{text-align:center;font-size:11px}
 .device-notice,.installed-notice{border-radius:16px;padding:16px 20px;font-size:13px;margin:0 0 24px}
 .device-notice{background:#fff4e5;color:#805722}.installed-notice{background:#e6f6ef;color:#1d7257}
 footer{display:flex;gap:12px;align-items:center;justify-content:space-between;border-top:1px solid var(--line);margin-top:40px;padding:23px 0 30px;color:var(--muted);font-size:12px}
-footer span{font-size:14px;font-weight:800;letter-spacing:1px;color:#405073}footer p{margin:0}
+footer span{font-size:14px;font-weight:600;letter-spacing:1px;color:#405073}footer p{margin:0}
 @media(max-width:760px){.page{padding:0 20px}.hero{gap:24px;padding:36px 0}.hero h1{font-size:36px}.app-card{padding:28px 12px}.app-icon{width:88px;height:88px;border-radius:23px}.guide-grid{grid-template-columns:1fr}.share-card{max-width:none}}
 @media(max-width:520px){.page{padding:0 20px}.topbar{padding:18px 0}.hero{display:block;padding:32px 0 28px}.hero h1{font-size:36px;letter-spacing:-1.3px}.intro{font-size:14px}.hero-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.hero-actions .button{font-size:12px;padding:13px 8px}.wide-only{display:none}.app-card{display:none}.card{padding:23px 20px;border-radius:20px}.guide-grid{gap:18px}h2{font-size:22px}.section-intro{font-size:13px}.steps li{gap:12px;padding-bottom:23px}.steps h3{font-size:14px}.steps p{font-size:12px}.share-card .qr img{width:208px}footer{margin-top:28px;font-size:11px;padding-bottom:calc(22px + env(safe-area-inset-bottom))}}

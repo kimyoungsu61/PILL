@@ -52,6 +52,7 @@ function defaultDoseTime(index: number) {
 export default function SupplementDetailScreen({ navigation, route }: Props) {
   const { token } = useAuth();
   const { width } = useWindowDimensions();
+  const isCompactIdentity = width < 380;
   const [detail, setDetail] = useState<SupplementDetailResponse | null>(null);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -306,17 +307,18 @@ export default function SupplementDetailScreen({ navigation, route }: Props) {
           <>
             <RitualSurface style={styles.identitySurface} variant="active">
               <View style={styles.identityTop}>
-                <SupplementThumb imageUri={detail.imageUri} name={displayName} size={72} />
+                <SupplementThumb imageUri={detail.imageUri} name={displayName} size={isCompactIdentity ? 56 : 72} />
                 <View style={styles.identityCopy}>
-                  <Text style={styles.brand}>{detail.brandName || '회사·브랜드 정보 미입력'}</Text>
-                  <Text style={styles.title}>{displayName || '제품명 미상'}</Text>
+                  <Text style={styles.brand}>{detail.brandName || '브랜드 정보 없음'}</Text>
+                  {!isCompactIdentity ? <Text style={styles.title}>{displayName || '제품명 미상'}</Text> : null}
                   {detail.productName && detail.productName !== displayName ? (
                     <Text style={styles.originalName}>{detail.productName}</Text>
                   ) : null}
                 </View>
               </View>
+              {isCompactIdentity ? <Text style={styles.title}>{displayName || '제품명 미상'}</Text> : null}
               <View style={styles.identitySchedule}>
-                <Clock3 size={18} color={colors.white} strokeWidth={2.4} />
+                <Clock3 size={18} color={colors.active} strokeWidth={2.4} />
                 <View style={styles.identityScheduleCopy}>
                   <Text style={styles.identityScheduleLabel}>현재 복용 일정</Text>
                   <Text style={styles.identityScheduleValue}>{doseTimes.join(' · ')}</Text>
@@ -327,21 +329,22 @@ export default function SupplementDetailScreen({ navigation, route }: Props) {
             {error ? <Text accessibilityLiveRegion="polite" style={styles.error}>{error}</Text> : null}
 
             <View style={[styles.detailLayout, hasSupportingColumn && styles.detailLayoutWide]}>
-              <View style={styles.primaryColumn}>
+              <View style={[styles.factsColumn, hasSupportingColumn && styles.factsColumnWide]}>
+                <ProductFacts detail={detail} guide={<ProductGuideCard information={detail.productInformation} loading={isLoadingGuide} error={guideError} onLoad={() => void loadGuide()} showReferenceLabel />} />
+              </View>
+              <View style={[styles.primaryColumn, hasSupportingColumn && styles.primaryColumnWide]}>
                 <RitualSurface style={styles.todaySurface}>
                   <View style={styles.todayHeading}>
                     <View>
-                      <Text style={styles.surfaceKicker}>TODAY</Text>
-                      <Text style={styles.surfaceTitle}>오늘의 루틴</Text>
+                      <Text style={styles.surfaceTitle}>오늘의 복용</Text>
                     </View>
                     <Text style={styles.todayCount}>{todaySummary.done}/{todaySummary.total}</Text>
                   </View>
-                  <Text style={styles.surfaceBody}>복용 완료 또는 건너뛰기 상태를 시간별로 기록하세요.</Text>
-                </RitualSurface>
+
 
                 {showTimeEditor ? <RitualSurface style={styles.routineSurface}>
                   <Pressable accessibilityRole="button" accessibilityLabel="알림 시간 편집 닫기" onPress={() => setShowTimeEditor(false)} style={styles.editorHeader}>
-                    <View><Text style={styles.surfaceKicker}>SCHEDULE</Text><Text style={styles.surfaceTitle}>알림 시간 편집</Text></View>
+                    <View><Text style={styles.surfaceTitle}>알림 시간 편집</Text></View>
                     <ChevronDown size={20} color={colors.active} style={{ transform: [{ rotate: '180deg' }] }} />
                   </Pressable>
                   {editableDoseTimes.map((time, index) => (
@@ -388,7 +391,7 @@ export default function SupplementDetailScreen({ navigation, route }: Props) {
                   {doseTimes.map((doseTime) => {
                     const status = todayStatusFor(doseTime);
                     return (
-                      <RitualSurface key={doseTime} style={styles.doseSurface} variant={status ? 'active' : 'default'}>
+                      <View key={doseTime} style={styles.doseSurface}>
                         <View style={styles.doseHeading}>
                           <View style={styles.doseTime}>
                             <Clock3 size={17} color={colors.active} strokeWidth={2.4} />
@@ -429,7 +432,7 @@ export default function SupplementDetailScreen({ navigation, route }: Props) {
                             <Text style={styles.clearButtonText}>이 시간의 기록 취소</Text>
                           </Pressable>
                         ) : null}
-                      </RitualSurface>
+                      </View>
                     );
                   })}
                 </View>
@@ -438,15 +441,13 @@ export default function SupplementDetailScreen({ navigation, route }: Props) {
                   <Text style={styles.editScheduleText}>복용 시간 편집</Text>
                   <ChevronDown size={18} color={colors.active} />
                 </Pressable> : null}
+                </RitualSurface>
               </View>
 
-              <View style={[styles.factsColumn, hasSupportingColumn && styles.factsColumnWide]}>
-                <ProductFacts detail={detail} guide={<ProductGuideCard information={detail.productInformation} loading={isLoadingGuide} error={guideError} onLoad={() => void loadGuide()} showReferenceLabel />} />
-              </View>
+
             </View>
 
-            <RitualSurface style={styles.dangerSurface} variant="warning">
-              <Text style={styles.dangerKicker}>CABINET MANAGEMENT</Text>
+            <RitualSurface style={styles.dangerSurface}>
               <Text style={styles.surfaceTitle}>보관함에서 삭제</Text>
               <Text style={styles.surfaceBody}>제품과 복용 기록, 설정한 알림이 삭제됩니다. 삭제한 내용은 되돌릴 수 없어요.</Text>
               <RitualAction
@@ -490,7 +491,6 @@ function ProductFacts({ detail, guide }: { detail: SupplementDetailResponse; gui
   return (
     <>
       <RitualSurface style={styles.factSurface}>
-        <Text style={styles.surfaceKicker}>GUIDANCE</Text>
         <Text style={styles.surfaceTitle}>섭취 방법</Text>
         <Text style={styles.guidanceText}>
           {detail.suggestedUseKo || '등록된 섭취 방법이 없습니다. 제품 라벨을 확인해 주세요.'}
@@ -510,7 +510,6 @@ function ProductFacts({ detail, guide }: { detail: SupplementDetailResponse; gui
       {guide}
 
       <RitualSurface style={styles.factSurface}>
-        <Text style={styles.surfaceKicker}>INGREDIENTS</Text>
         <Text style={styles.surfaceTitle}>성분 및 함량</Text>
         <Text style={styles.ingredientCount}>{detail.servingBasisKo ? `함량 기준 · ${detail.servingBasisKo}` : '함량 기준 미입력'}</Text>
         {detail.ingredients.length ? (showAllIngredients ? detail.ingredients : detail.ingredients.slice(0, 4)).map((ingredient, index) => {
@@ -536,7 +535,6 @@ function ProductFacts({ detail, guide }: { detail: SupplementDetailResponse; gui
       <RitualSurface style={styles.factSurface}>
         <View style={styles.factTitleRow}>
           <View>
-            <Text style={styles.surfaceKicker}>HISTORY</Text>
             <Text style={styles.surfaceTitle}>최근 기록</Text>
           </View>
           <History color={colors.faint} size={18} strokeWidth={2.4} />
@@ -562,7 +560,7 @@ const styles = StyleSheet.create({
   deleteDialog: { backgroundColor: colors.surface, borderRadius: radius.xxl, maxWidth: 420, maxHeight: '85%', width: '100%', overflow: 'hidden' },
   deleteDialogContent: { padding: 24, gap: 14 },
   deleteDialogIcon: { backgroundColor: colors.dangerSoft, borderRadius: 16, width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
-  deleteDialogTitle: { color: colors.ink, fontSize: 21, lineHeight: 29, fontWeight: '800' },
+  deleteDialogTitle: { color: colors.ink, fontSize: 21, lineHeight: 29, fontWeight: '600' },
   deleteProductName: { color: colors.inkSoft, fontSize: 15, lineHeight: 23, fontWeight: '700' },
   deleteDialogBody: { color: colors.muted, fontSize: 14, lineHeight: 23 },
   deleteDialogActions: { gap: 10, marginTop: 6 },
@@ -586,8 +584,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   identitySurface: {
-    backgroundColor: '#253F9A',
-    borderColor: '#253F9A',
+    backgroundColor: colors.surface,
+    borderColor: colors.surface,
     gap: spacing.lg,
   },
   identityTop: {
@@ -600,27 +598,23 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   brand: {
-    color: '#C4D2FF',
-    fontSize: 11,
-    fontWeight: '900',
-    letterSpacing: 1,
-    marginBottom: spacing.xs,
+    color: colors.muted, fontSize: 12, fontWeight: '500', lineHeight: 18, marginBottom: 4,
   },
   title: {
-    color: colors.white,
+    color: colors.ink,
     fontSize: 24,
-    fontWeight: '900',
+    fontWeight: '700',
     lineHeight: 31,
   },
   originalName: {
     ...type.meta,
-    color: '#D5DEFB',
+    color: colors.muted,
     marginTop: spacing.xs,
   },
   identitySchedule: {
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.14)',
-    borderColor: 'rgba(255,255,255,0.18)',
+    backgroundColor: colors.surfaceMuted,
+    borderColor: colors.surfaceMuted,
     borderRadius: radius.md,
     borderWidth: 1,
     flexDirection: 'row',
@@ -632,14 +626,14 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   identityScheduleLabel: {
-    color: '#D5DEFB',
+    color: colors.muted,
     fontSize: 11,
-    fontWeight: '800',
+    fontWeight: '600',
   },
   identityScheduleValue: {
-    color: colors.white,
+    color: colors.inkSoft,
     fontSize: 15,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   detailLayout: {
     gap: spacing.lg,
@@ -657,7 +651,10 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
   },
   factsColumnWide: {
-    width: 340,
+    flex: 1, minWidth: 0,
+  },
+  primaryColumnWide: {
+    width: 340, flex: 0,
   },
   todaySurface: {
     gap: spacing.sm,
@@ -669,13 +666,13 @@ const styles = StyleSheet.create({
   },
   todayCount: {
     color: colors.primary,
-    fontSize: 30,
-    fontWeight: '900',
+    fontSize: 23,
+    fontWeight: '700',
   },
   surfaceKicker: {
     color: colors.active,
     fontSize: 10,
-    fontWeight: '900',
+    fontWeight: '700',
     letterSpacing: 1.6,
     marginBottom: spacing.xs,
   },
@@ -703,7 +700,7 @@ const styles = StyleSheet.create({
     color: colors.active,
     flex: 1,
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: '600',
   },
   editorHeader: {
     alignItems: 'flex-start',
@@ -720,7 +717,7 @@ const styles = StyleSheet.create({
   inlineDisclosureText: {
     color: colors.active,
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '600',
   },
   ingredientCount: {
     color: colors.muted,
@@ -766,7 +763,7 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   doseSurface: {
-    gap: spacing.md,
+    gap: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line, paddingTop: 18,
   },
   doseHeading: {
     alignItems: 'center',
@@ -781,12 +778,12 @@ const styles = StyleSheet.create({
   doseTimeText: {
     color: colors.ink,
     fontSize: 18,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   doseStatus: {
     color: colors.muted,
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   completedStatus: {
     color: colors.completed,
@@ -811,7 +808,7 @@ const styles = StyleSheet.create({
   clearButtonText: {
     color: colors.inkSoft,
     fontSize: 13,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   disabledButton: {
     opacity: 0.48,
@@ -832,7 +829,7 @@ const styles = StyleSheet.create({
   factLabel: {
     color: colors.muted,
     fontSize: 11,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   ingredient: {
     gap: spacing.xs,
@@ -850,21 +847,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   ingredientName: {
-    color: colors.ink,
-    flex: 1,
-    fontSize: 15,
-    fontWeight: '900',
-    minWidth: 120,
+    color: colors.ink, flex: 1, fontSize: 15, fontWeight: '500', minWidth: 120, lineHeight: 23,
   },
   ingredientAmount: {
-    color: colors.inkSoft,
-    fontSize: 13,
-    fontWeight: '800',
+    color: colors.inkSoft, fontSize: 14, fontWeight: '500', fontVariant: ['tabular-nums'],
   },
   confidenceText: {
     color: colors.active,
     fontSize: 11,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   originalIngredient: {
     ...type.meta,
@@ -884,23 +875,20 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   logDate: {
-    color: colors.ink,
-    flex: 1,
-    fontSize: 13,
-    fontWeight: '900',
+    color: colors.inkSoft, flex: 1, fontSize: 13, fontWeight: '400', lineHeight: 21,
   },
   logStatus: {
     color: colors.muted,
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   dangerSurface: {
-    gap: spacing.sm,
+    gap: 12, backgroundColor: 'transparent', paddingHorizontal: 4,
   },
   dangerKicker: {
     color: colors.danger,
     fontSize: 10,
-    fontWeight: '900',
+    fontWeight: '700',
     letterSpacing: 1.5,
   },
   error: {

@@ -48,17 +48,16 @@ export default function LoginScreen({ navigation }: Props) {
         <View style={styles.rail}>
           <View style={styles.brandHeader}>
             <View style={styles.logo}>
-              <Pill size={24} color={colors.primaryText} strokeWidth={2.8} />
+              <Pill size={26} color={colors.primaryText} strokeWidth={1.8} />
             </View>
             <View>
               <Text style={styles.brandName}>PILL</Text>
-              <Text style={styles.brandKicker}>DAILY RITUAL</Text>
             </View>
           </View>
 
           <View style={styles.intro}>
-            <Text style={styles.title}>오늘의 루틴으로{'\n'}돌아오세요</Text>
-            <Text style={styles.subtitle}>복용할 순간을 놓치지 않도록 조용히 곁을 지켜드려요.</Text>
+            <Text style={styles.title}>내 영양제,{'\n'}매일의 기록</Text>
+            <Text style={styles.subtitle}>등록한 영양제와 복용 기록을 이어서 확인하세요.</Text>
           </View>
 
           <RitualSurface style={styles.panel}>
@@ -73,7 +72,7 @@ export default function LoginScreen({ navigation }: Props) {
                 maxLength={255}
                 onChangeText={setEmail}
                 placeholder="name@example.com"
-                placeholderTextColor={colors.faint}
+                placeholderTextColor={colors.muted}
                 style={styles.input}
                 textContentType="emailAddress"
                 value={email}
@@ -90,7 +89,7 @@ export default function LoginScreen({ navigation }: Props) {
                 maxLength={128}
                 onChangeText={setPassword}
                 placeholder="8자 이상 입력"
-                placeholderTextColor={colors.faint}
+                placeholderTextColor={colors.muted}
                 secureTextEntry
                 style={styles.input}
                 textContentType="password"
@@ -138,7 +137,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     gap: spacing.md,
-    marginBottom: spacing.xl,
+    marginBottom: 32,
   },
   logo: {
     alignItems: 'center',
@@ -151,13 +150,13 @@ const styles = StyleSheet.create({
   brandName: {
     color: colors.ink,
     fontSize: 19,
-    fontWeight: '900',
+    fontWeight: '700',
     letterSpacing: 1.5,
   },
   brandKicker: {
     color: colors.active,
     fontSize: 10,
-    fontWeight: '900',
+    fontWeight: '700',
     letterSpacing: 2,
     marginTop: 2,
   },
@@ -166,7 +165,7 @@ const styles = StyleSheet.create({
   },
   title: {
     ...type.hero,
-    fontSize: 30,
+    fontSize: 31,
     lineHeight: 38,
   },
   subtitle: {
@@ -175,6 +174,8 @@ const styles = StyleSheet.create({
   },
   panel: {
     gap: spacing.lg,
+    padding: 0,
+    backgroundColor: 'transparent',
   },
   fieldGroup: {
     gap: spacing.sm,
@@ -182,16 +183,16 @@ const styles = StyleSheet.create({
   label: {
     color: colors.inkSoft,
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: '600',
   },
   input: {
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: colors.surface,
     borderColor: colors.line,
     borderRadius: radius.md,
-    borderWidth: 1,
+    borderWidth: 0,
     color: colors.ink,
     fontSize: 15,
-    minHeight: 52,
+    minHeight: 56,
     paddingHorizontal: spacing.lg,
   },
   error: {
@@ -208,7 +209,7 @@ const styles = StyleSheet.create({
   linkText: {
     color: colors.active,
     fontSize: 14,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   pressed: {
     opacity: 0.72,

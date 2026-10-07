@@ -183,7 +183,6 @@ function NativeNotificationSettingsScreen({ navigation }: Props) {
     <ScrollView contentContainerStyle={styles.content} style={styles.screen}>
       <View style={[styles.rail, { maxWidth: contentRailWidth(width) }]}>
         <View style={styles.header}>
-          <Text style={styles.kicker}>REMINDERS</Text>
           <View style={styles.titleRow}>
             <Text style={styles.title}>알림 설정</Text>
             {granted ? (
@@ -200,7 +199,6 @@ function NativeNotificationSettingsScreen({ navigation }: Props) {
           <RitualSurface accessibilityLabel="알림 설정 확인 중" style={styles.summaryCard}>
             <View style={styles.summaryHeader}>
               <View>
-                <Text style={styles.summaryKicker}>TODAY</Text>
                 <Text style={styles.summaryTitle}>오늘의 알림</Text>
               </View>
               <View style={styles.summaryIcon}>
@@ -235,7 +233,6 @@ function NativeNotificationSettingsScreen({ navigation }: Props) {
           <RitualSurface accessibilityLabel="오늘의 알림 요약" style={styles.summaryCard}>
             <View style={styles.summaryHeader}>
               <View>
-                <Text style={styles.summaryKicker}>TODAY</Text>
                 <Text style={styles.summaryTitle}>오늘의 알림</Text>
               </View>
               <View style={styles.summaryIcon}>
@@ -284,7 +281,6 @@ function NativeNotificationSettingsScreen({ navigation }: Props) {
 
         <View style={styles.sectionHeader}>
           <View>
-            <Text style={styles.sectionKicker}>MY ROUTINES</Text>
             <Text style={styles.sectionTitle}>제품별 복용 알림</Text>
           </View>
           <Pressable accessibilityLabel="알림 목록 새로고침" accessibilityRole="button" onPress={() => void load()} style={({ pressed }) => [styles.refreshButton, pressed && styles.pressed]}>
@@ -364,57 +360,57 @@ const styles = StyleSheet.create({
   content: { padding: spacing.xl, paddingBottom: 112 },
   rail: { alignSelf: 'center', gap: spacing.lg, width: '100%' },
   header: { gap: spacing.xs },
-  kicker: { color: colors.active, fontSize: 11, fontWeight: '900', letterSpacing: 2.2 },
+  kicker: { color: colors.active, fontSize: 11, fontWeight: '700', letterSpacing: 2.2 },
   titleRow: { alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md, justifyContent: 'space-between' },
   title: { ...type.hero, fontSize: 30, lineHeight: 38 },
   subtitle: { ...type.body, color: colors.inkSoft },
   permissionBadge: { alignItems: 'center', backgroundColor: colors.completedSoft, borderColor: colors.completed, borderRadius: 999, borderWidth: 1, flexDirection: 'row', gap: spacing.sm, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
   permissionDot: { backgroundColor: colors.completed, borderRadius: 999, height: 7, width: 7 },
-  permissionBadgeText: { color: colors.completed, fontSize: 11, fontWeight: '900' },
+  permissionBadgeText: { color: colors.completed, fontSize: 11, fontWeight: '700' },
   permissionCard: { alignItems: 'flex-start', gap: spacing.md },
   permissionIcon: { alignItems: 'center', backgroundColor: colors.surface, borderRadius: 999, height: 48, justifyContent: 'center', width: 48 },
   permissionCopy: { gap: spacing.xs },
-  permissionTitle: { color: colors.ink, fontSize: 17, fontWeight: '900' },
+  permissionTitle: { color: colors.ink, fontSize: 17, fontWeight: '700' },
   permissionBody: { ...type.body, color: colors.inkSoft },
   summaryCard: { gap: spacing.lg },
   summaryHeader: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
-  summaryKicker: { color: colors.active, fontSize: 10, fontWeight: '900', letterSpacing: 1.5 },
-  summaryTitle: { color: colors.ink, fontSize: 18, fontWeight: '900', marginTop: spacing.xs },
+  summaryKicker: { color: colors.active, fontSize: 10, fontWeight: '700', letterSpacing: 1.5 },
+  summaryTitle: { color: colors.ink, fontSize: 18, fontWeight: '700', marginTop: spacing.xs },
   summaryIcon: { alignItems: 'center', backgroundColor: colors.primary, borderRadius: radius.md, height: 42, justifyContent: 'center', width: 42 },
   summaryLoading: { alignItems: 'center', flexDirection: 'row', gap: spacing.md, minHeight: 48 },
-  summaryLoadingText: { color: colors.muted, fontSize: 13, fontWeight: '800' },
-  summaryCount: { color: colors.inkSoft, fontSize: 14, fontWeight: '800', lineHeight: 21 },
+  summaryLoadingText: { color: colors.muted, fontSize: 13, fontWeight: '600' },
+  summaryCount: { color: colors.inkSoft, fontSize: 14, fontWeight: '600', lineHeight: 21 },
   nextDoseRow: { alignItems: 'center', backgroundColor: colors.surfaceElevated, borderColor: colors.line, borderRadius: radius.lg, borderWidth: 1, flexDirection: 'row', gap: spacing.md, justifyContent: 'space-between', minHeight: 74, padding: spacing.md },
   nextDoseCopy: { flex: 1, gap: spacing.xs, minWidth: 0 },
-  nextDoseLabel: { color: colors.muted, fontSize: 11, fontWeight: '800' },
-  nextDoseValue: { color: colors.ink, fontSize: 15, fontWeight: '900' },
+  nextDoseLabel: { color: colors.muted, fontSize: 11, fontWeight: '600' },
+  nextDoseValue: { color: colors.ink, fontSize: 15, fontWeight: '700' },
   scheduleLink: { alignItems: 'center', flexDirection: 'row', gap: spacing.xs },
-  scheduleLinkText: { color: colors.active, fontSize: 12, fontWeight: '900' },
+  scheduleLinkText: { color: colors.active, fontSize: 12, fontWeight: '700' },
   summaryEmpty: { gap: spacing.xs },
-  summaryEmptyTitle: { color: colors.ink, fontSize: 15, fontWeight: '900' },
+  summaryEmptyTitle: { color: colors.ink, fontSize: 15, fontWeight: '700' },
   summaryEmptyBody: { ...type.body, color: colors.muted },
   error: { color: colors.danger, fontSize: 14, lineHeight: 20 },
   sectionHeader: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
-  sectionKicker: { color: colors.active, fontSize: 10, fontWeight: '900', letterSpacing: 1.5 },
+  sectionKicker: { color: colors.active, fontSize: 10, fontWeight: '700', letterSpacing: 1.5 },
   sectionTitle: { ...type.section, marginTop: spacing.xs },
   refreshButton: { alignItems: 'center', backgroundColor: colors.activeSoft, borderRadius: radius.md, height: 42, justifyContent: 'center', width: 42 },
   loading: { marginVertical: spacing.xxl },
   emptyCard: { gap: spacing.xs },
-  emptyTitle: { color: colors.ink, fontSize: 16, fontWeight: '900' },
+  emptyTitle: { color: colors.ink, fontSize: 16, fontWeight: '700' },
   emptyBody: { ...type.body, color: colors.inkSoft },
   reminderCard: { overflow: 'hidden' },
   reminderTop: { alignItems: 'center', flexDirection: 'row', gap: spacing.md, padding: spacing.lg },
   reminderCopy: { flex: 1, gap: spacing.xs, minWidth: 0 },
-  reminderName: { color: colors.ink, fontSize: 16, fontWeight: '900' },
-  reminderStatus: { color: colors.muted, fontSize: 12, fontWeight: '800' },
+  reminderName: { color: colors.ink, fontSize: 16, fontWeight: '700' },
+  reminderStatus: { color: colors.muted, fontSize: 12, fontWeight: '600' },
   timeReminderList: { borderTopColor: colors.line, borderTopWidth: 1 },
   timeReminderRow: { alignItems: 'center', flexDirection: 'row', gap: spacing.md, minHeight: 68, paddingHorizontal: spacing.lg },
   timeReminderIcon: { alignItems: 'center', backgroundColor: colors.surfaceMuted, borderRadius: radius.md, height: 38, justifyContent: 'center', width: 38 },
   timeReminderCopy: { flex: 1, gap: 2 },
-  timeReminderLabel: { color: colors.ink, fontSize: 14, fontWeight: '900' },
-  timeReminderMeta: { color: colors.muted, fontSize: 11, fontWeight: '800' },
+  timeReminderLabel: { color: colors.ink, fontSize: 14, fontWeight: '700' },
+  timeReminderMeta: { color: colors.muted, fontSize: 11, fontWeight: '600' },
   editLink: { alignItems: 'center', borderTopColor: colors.line, borderTopWidth: 1, flexDirection: 'row', justifyContent: 'space-between', minHeight: 48, paddingHorizontal: spacing.lg },
-  editLinkText: { color: colors.active, fontSize: 13, fontWeight: '900' },
+  editLinkText: { color: colors.active, fontSize: 13, fontWeight: '700' },
   pressed: { opacity: 0.75 },
 });
 

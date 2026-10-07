@@ -19,7 +19,7 @@ export default function DoseCheckRow({ disabled = false, dose, onClear, onTaken,
   return (
     <View style={styles.row}>
       {showTime ? <Text style={[styles.time, taken && styles.muted]}>{dose.confirmedTime || '미설정'}</Text> :
-        <SupplementThumb imageUri={dose.imageUri} name={name} size={46} />}
+        <SupplementThumb imageUri={dose.imageUri} name={name} size={42} />}
       <Pressable accessibilityRole="button" accessibilityLabel={name + ' 상세 정보'} onPress={onOpen} style={styles.identity}>
         <Text style={[styles.name, taken && styles.muted]}>{name}</Text>
         <Text style={styles.status}>{taken ? '복용 완료' : dose.status === 'SKIPPED' ? '건너뜀' : '복용 예정'}</Text>
@@ -38,13 +38,13 @@ export default function DoseCheckRow({ disabled = false, dose, onClear, onTaken,
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 82, paddingVertical: 12, paddingHorizontal: 14 },
-  time: { width: 48, color: colors.active, fontSize: 14, fontWeight: '800', fontVariant: ['tabular-nums'] },
-  identity: { flex: 1, minWidth: 0, justifyContent: 'center', minHeight: 48, gap: 7 },
-  name: { color: colors.ink, fontSize: 15, lineHeight: 21, fontWeight: '800' },
+  time: { width: 48, color: colors.active, fontSize: 14, fontWeight: '600', fontVariant: ['tabular-nums'] },
+  identity: { flex: 1, minWidth: 0, justifyContent: 'center', minHeight: 48, gap: 4 },
+  name: { color: colors.ink, fontSize: 15, lineHeight: 22, fontWeight: '500' },
   status: { color: colors.muted, fontSize: 12, lineHeight: 18 },
   muted: { color: colors.muted },
   checkTarget: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
-  check: { width: 30, height: 30, borderRadius: 10, borderWidth: 1.5, borderColor: colors.line, backgroundColor: colors.surfaceMuted, alignItems: 'center', justifyContent: 'center' },
+  check: { width: 30, height: 30, borderRadius: 15, borderWidth: 1.5, borderColor: colors.line, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
   checked: { backgroundColor: colors.completed, borderColor: colors.completed },
   dimmed: { opacity: 0.5 },
 });

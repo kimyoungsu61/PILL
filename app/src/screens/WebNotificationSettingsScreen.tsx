@@ -63,8 +63,7 @@ export default function WebNotificationSettingsScreen({ navigation }: Props) {
   }
   const connected = state?.enabled === true && support === 'supported' && typeof Notification !== 'undefined' && Notification.permission === 'granted';
   return <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-    <View style={[styles.rail, { maxWidth: contentRailWidth(width) }]}>
-      <Text style={styles.kicker}>REMINDERS</Text><Text style={styles.title}>복용 알림</Text>
+    <View style={[styles.rail, { maxWidth: contentRailWidth(width) }]}><Text style={styles.title}>복용 알림</Text>
       <Text style={styles.body}>PILL을 닫아도 복용 시간이 되면 이 기기로 알려드려요.</Text>
       {support === 'home-screen-required' ? <RitualSurface style={styles.card} variant="warning">
         <Plus color={colors.active} size={24} /><Text style={styles.cardTitle}>홈 화면에 PILL을 추가해 주세요</Text>
@@ -99,8 +98,8 @@ export default function WebNotificationSettingsScreen({ navigation }: Props) {
 }
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background }, content: { padding: 20, paddingBottom: 44 }, rail: { alignSelf: 'center', width: '100%', gap: 16 },
-  kicker: { fontSize: 10, fontWeight: '800', letterSpacing: 1.6, color: colors.active }, title: { fontSize: 28, fontWeight: '800', color: colors.ink },
-  card: { padding: 22, gap: 14, borderRadius: radius.xl }, cardTitle: { fontSize: 18, fontWeight: '800', lineHeight: 27, color: colors.ink },
+  kicker: { fontSize: 10, fontWeight: '600', letterSpacing: 1.6, color: colors.active }, title: { fontSize: 28, fontWeight: '600', color: colors.ink },
+  card: { padding: 22, gap: 14, borderRadius: radius.xl }, cardTitle: { fontSize: 18, fontWeight: '600', lineHeight: 27, color: colors.ink },
   body: { color: colors.muted, fontSize: 14, lineHeight: 23 }, timeRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', minHeight: 52 },
   time: { fontSize: 18, fontWeight: '700', color: colors.ink }, error: { color: colors.danger, fontSize: 14, lineHeight: 22 },
   message: { color: colors.active, fontSize: 14, lineHeight: 22 }, note: { color: colors.muted, fontSize: 12, lineHeight: 20 },

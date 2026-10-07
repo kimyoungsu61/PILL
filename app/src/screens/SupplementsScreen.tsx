@@ -53,8 +53,8 @@ export default function SupplementsScreen() {
         <View style={[styles.rail, { maxWidth: contentRailWidth(width) }]}>
           <View style={styles.header}>
             <View style={styles.headerCopy}>
-              <Text style={styles.title}>내 영양제 & 루틴</Text>
-              <Text style={styles.subtitle}>제품과 복용 시간을 한눈에 확인해요.</Text>
+              <Text style={styles.title}>영양제</Text>
+              <Text style={styles.subtitle}>제품 정보와 복용 일정을 확인하세요.</Text>
             </View>
             <Pressable accessibilityRole="button" accessibilityLabel="영양제 추가" onPress={() => setShowAdd(true)} style={styles.addIcon}>
               <Plus color={colors.white} size={23} strokeWidth={2.6} />
@@ -64,7 +64,7 @@ export default function SupplementsScreen() {
           <View style={styles.searchBar}>
             <Search size={19} color={colors.muted} strokeWidth={2.2} />
             <TextInput accessibilityLabel="내 영양제 검색" onChangeText={setQuery}
-              placeholder="내 제품명, 브랜드, 성분 검색" placeholderTextColor={colors.faint}
+              placeholder="제품명 또는 브랜드 검색" placeholderTextColor={colors.muted}
               style={styles.searchInput} value={query} />
           </View>
 
@@ -113,7 +113,7 @@ export default function SupplementsScreen() {
             <View style={styles.empty}>
               <View style={styles.emptyIcon}><Search size={22} color={colors.active} /></View>
               <Text style={styles.emptyTitle}>{query.trim() ? '검색 결과가 없어요' : '아직 등록한 영양제가 없어요'}</Text>
-              <Text style={styles.emptyBody}>{query.trim() ? '다른 이름이나 브랜드로 검색해 보세요.' : '라벨을 찍거나 직접 입력해 첫 루틴을 시작해 보세요.'}</Text>
+              <Text style={styles.emptyBody}>{query.trim() ? '다른 이름이나 브랜드로 검색해 보세요.' : '라벨을 촬영하거나 제품 정보를 직접 입력해 주세요.'}</Text>
             </View>
           ) : null}
         </View>
@@ -126,33 +126,33 @@ export default function SupplementsScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  content: { paddingHorizontal: 20, paddingTop: 22, paddingBottom: 50 },
+  content: { paddingHorizontal: 24, paddingTop: 28, paddingBottom: 50 },
   rail: { width: '100%', alignSelf: 'center' },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 14, marginBottom: 22 },
   headerCopy: { flex: 1, minWidth: 0 },
-  title: { color: colors.ink, fontSize: 26, lineHeight: 34, fontWeight: '900', letterSpacing: -0.6 },
+  title: { color: colors.ink, fontSize: 30, lineHeight: 40, fontWeight: '700', letterSpacing: -0.6 },
   subtitle: { color: colors.muted, fontSize: 13, marginTop: 6 },
   addIcon: { width: 48, height: 48, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.active },
-  searchBar: { minHeight: 54, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.surface, borderColor: colors.line, borderWidth: 1, borderRadius: 16, paddingHorizontal: 16, marginBottom: 26 },
+  searchBar: { minHeight: 54, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.surfaceMuted, borderColor: colors.line, borderWidth: 0, borderRadius: 12, paddingHorizontal: 16, marginBottom: 26 },
   searchInput: { flex: 1, minWidth: 0, color: colors.ink, fontSize: 14, padding: 0 },
   listHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
-  listTitle: { color: colors.ink, fontSize: 18, fontWeight: '900' },
-  listCount: { color: colors.active, fontSize: 13, fontWeight: '800' },
-  cabinetList: { backgroundColor: colors.surface, borderColor: colors.line, borderWidth: 1, borderRadius: 22, overflow: 'hidden' },
+  listTitle: { color: colors.ink, fontSize: 18, fontWeight: '600' },
+  listCount: { color: colors.active, fontSize: 13, fontWeight: '600' },
+  cabinetList: { backgroundColor: colors.surface, borderColor: colors.line, borderWidth: 0, borderRadius: 16, overflow: 'hidden' },
   card: { paddingHorizontal: 16, paddingVertical: 18, gap: 14 },
   cardDivider: { borderTopColor: colors.line, borderTopWidth: 1 },
   productRow: { flexDirection: 'row', alignItems: 'center', gap: 13 },
   productCopy: { flex: 1, minWidth: 0, gap: 4 },
   brand: { color: colors.muted, fontSize: 11, fontWeight: '700' },
-  productName: { color: colors.ink, fontSize: 17, lineHeight: 23, fontWeight: '900' },
-  cardFooter: { borderTopColor: colors.line, borderTopWidth: 1, paddingTop: 12, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  productName: { color: colors.ink, fontSize: 17, lineHeight: 24, fontWeight: '600' },
+  cardFooter: { borderTopColor: colors.line, borderTopWidth: 0, paddingTop: 0, flexDirection: 'row', alignItems: 'center', gap: 8 },
   scheduleRow: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 6 },
   scheduleText: { color: colors.inkSoft, fontSize: 12, fontWeight: '700', flex: 1 },
-  status: { backgroundColor: colors.activeSoft, color: colors.active, borderRadius: 999, paddingHorizontal: 9, paddingVertical: 5, fontSize: 11, fontWeight: '800', overflow: 'hidden' },
-  statusDone: { backgroundColor: colors.completedSoft, color: colors.completed },
+  status: { color: colors.muted, paddingHorizontal: 0, paddingVertical: 2, fontSize: 11, fontWeight: '600', overflow: 'hidden' },
+  statusDone: { color: colors.completed },
   empty: { backgroundColor: colors.surface, borderColor: colors.line, borderWidth: 1, borderRadius: 20, padding: 22, alignItems: 'flex-start', gap: 9 },
   emptyIcon: { width: 46, height: 46, borderRadius: 14, backgroundColor: colors.activeSoft, alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
-  emptyTitle: { color: colors.ink, fontSize: 17, fontWeight: '900' },
+  emptyTitle: { color: colors.ink, fontSize: 17, fontWeight: '700' },
   emptyBody: { color: colors.muted, fontSize: 13, lineHeight: 20, marginBottom: 8 },
   loadingRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 },
   loadingText: { color: colors.muted, fontSize: 12 },

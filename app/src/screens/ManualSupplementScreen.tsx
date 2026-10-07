@@ -146,13 +146,12 @@ export default function ManualSupplementScreen({ navigation, route }: Props) {
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={[styles.rail, { maxWidth: contentRailWidth(width) }]}>
           <View style={styles.header}>
-            <Text style={styles.kicker}>MANUAL ENTRY</Text>
             <Text style={styles.title}>직접 등록</Text>
             <Text style={styles.subtitle}>제품 정보와 복용 시간을 짧은 단계로 정리해 나의 보관함에 추가하세요.</Text>
           </View>
 
           <RitualSurface style={styles.surface}>
-            <SurfaceHeading kicker="01 · PRODUCT PHOTO" title="제품 사진" />
+            <SurfaceHeading title="제품 사진" />
             <View style={styles.imageRow}>
               {imageUri ? (
                 <Image accessibilityLabel="등록할 영양제 사진" source={{ uri: imageUri }} style={styles.previewImage} />
@@ -178,18 +177,18 @@ export default function ManualSupplementScreen({ navigation, route }: Props) {
           </RitualSurface>
 
           <RitualSurface style={styles.surface}>
-            <SurfaceHeading kicker="02 · IDENTITY" title="제품 정보" />
+            <SurfaceHeading title="제품 정보" />
             <Text style={styles.label}>브랜드</Text>
-            <TextInput accessibilityLabel="브랜드" onChangeText={setBrandName} placeholder="예: 종근당" placeholderTextColor={colors.faint} style={styles.input} value={brandName} />
+            <TextInput accessibilityLabel="브랜드" onChangeText={setBrandName} placeholder="예: 종근당" placeholderTextColor={colors.muted} style={styles.input} value={brandName} />
             <Text style={styles.label}>제품명</Text>
-            <TextInput accessibilityLabel="제품명" onChangeText={setProductName} placeholder="제품명을 입력하세요" placeholderTextColor={colors.faint} style={styles.input} value={productName} />
+            <TextInput accessibilityLabel="제품명" onChangeText={setProductName} placeholder="제품명을 입력하세요" placeholderTextColor={colors.muted} style={styles.input} value={productName} />
             <Text style={styles.label}>복용 안내</Text>
-            <TextInput accessibilityLabel="복용 안내" multiline onChangeText={setSuggestedUseKo} placeholder="예: 하루 1캡슐, 식후 복용" placeholderTextColor={colors.faint} style={styles.textArea} value={suggestedUseKo} />
+            <TextInput accessibilityLabel="복용 안내" multiline onChangeText={setSuggestedUseKo} placeholder="예: 하루 1캡슐, 식후 복용" placeholderTextColor={colors.muted} style={styles.textArea} value={suggestedUseKo} />
           </RitualSurface>
 
           <RitualSurface style={styles.surface}>
             <View style={styles.sectionHeader}>
-              <SurfaceHeading kicker="03 · SCHEDULE" title="알림 시간" />
+              <SurfaceHeading title="알림 시간" />
               <Text style={styles.meta}>최대 3번</Text>
             </View>
             {doseTimes.map((time, index) => (
@@ -234,10 +233,9 @@ export default function ManualSupplementScreen({ navigation, route }: Props) {
   );
 }
 
-function SurfaceHeading({ kicker, title }: { kicker: string; title: string }) {
+function SurfaceHeading({ title }: { title: string }) {
   return (
     <View style={styles.surfaceHeading}>
-      <Text style={styles.surfaceKicker}>{kicker}</Text>
       <Text style={styles.sectionTitle}>{title}</Text>
     </View>
   );
@@ -264,7 +262,7 @@ const styles = StyleSheet.create({
   kicker: {
     color: colors.active,
     fontSize: 11,
-    fontWeight: '900',
+    fontWeight: '700',
     letterSpacing: 2.2,
   },
   title: {
@@ -286,7 +284,7 @@ const styles = StyleSheet.create({
   surfaceKicker: {
     color: colors.active,
     fontSize: 10,
-    fontWeight: '900',
+    fontWeight: '700',
     letterSpacing: 1.4,
   },
   sectionTitle: {
@@ -341,12 +339,12 @@ const styles = StyleSheet.create({
   imageActionText: {
     color: colors.active,
     fontSize: 13,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   label: {
     color: colors.inkSoft,
     fontSize: 13,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   input: {
     backgroundColor: colors.surfaceMuted,

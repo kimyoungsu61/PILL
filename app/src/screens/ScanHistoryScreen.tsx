@@ -19,7 +19,6 @@ import {
   CircleDashed,
   RefreshCw,
   ScanLine,
-  Sparkles,
 } from 'lucide-react-native';
 import { apiRequest } from '../api/client';
 import type { ScanHistoryEntry, ScanHistoryResponse, ScanResult } from '../api/types';
@@ -118,7 +117,6 @@ export default function ScanHistoryScreen({ navigation }: Props) {
       <View style={[styles.rail, { maxWidth: contentRailWidth(width) }]}>
         <View style={styles.header}>
           <View style={styles.headerCopy}>
-            <Text style={styles.kicker}>SCAN ARCHIVE</Text>
             <Text style={styles.title}>스캔 기록</Text>
             <Text style={styles.subtitle}>
               AI가 읽은 라벨과 보관함 저장 여부를 한눈에 확인하고, 저장 전 결과도 다시 이어볼 수 있어요.
@@ -137,7 +135,6 @@ export default function ScanHistoryScreen({ navigation }: Props) {
         <RitualSurface style={styles.summaryCard} variant="active">
           <View style={styles.summaryTop}>
             <View>
-              <Text style={styles.summaryKicker}>TOTAL ANALYSES</Text>
               <View style={styles.totalRow}>
                 <Text style={styles.totalValue}>{history.summary.total}</Text>
                 <Text style={styles.totalUnit}>건</Text>
@@ -154,7 +151,7 @@ export default function ScanHistoryScreen({ navigation }: Props) {
               value={history.summary.saved}
             />
             <SummaryStat
-              icon={<Sparkles color={colors.active} size={18} strokeWidth={2.6} />}
+              icon={<ScanLine color={colors.active} size={18} strokeWidth={2.6} />}
               label="저장 전 확인"
               value={history.summary.needsReview}
             />
@@ -227,7 +224,6 @@ export default function ScanHistoryScreen({ navigation }: Props) {
         {!isLoading && visibleEntries.length ? (
           <View style={styles.listSection}>
             <View style={styles.listHeading}>
-              <Text style={styles.listEyebrow}>RECENT</Text>
               <Text style={styles.listTitle}>최근 분석</Text>
               <Text style={styles.listCount}>{visibleEntries.length}건</Text>
             </View>
@@ -338,25 +334,25 @@ const styles = StyleSheet.create({
   rail: { alignSelf: 'center', gap: spacing.xl, width: '100%' },
   header: { alignItems: 'flex-start', flexDirection: 'row', gap: spacing.md },
   headerCopy: { flex: 1, gap: spacing.xs },
-  kicker: { color: colors.active, fontSize: 11, fontWeight: '900', letterSpacing: 2.2 },
+  kicker: { color: colors.active, fontSize: 11, fontWeight: '700', letterSpacing: 2.2 },
   title: { ...type.hero, fontSize: 30, lineHeight: 38 },
   subtitle: { ...type.body, color: colors.inkSoft },
   newScanButton: { alignItems: 'center', backgroundColor: colors.primary, borderRadius: radius.lg, height: 50, justifyContent: 'center', width: 50 },
   summaryCard: { gap: spacing.lg },
   summaryTop: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
-  summaryKicker: { color: colors.active, fontSize: 10, fontWeight: '900', letterSpacing: 1.5 },
+  summaryKicker: { color: colors.active, fontSize: 10, fontWeight: '700', letterSpacing: 1.5 },
   totalRow: { alignItems: 'baseline', flexDirection: 'row', marginTop: spacing.xs },
-  totalValue: { color: colors.primary, fontSize: 48, fontWeight: '900', letterSpacing: -1.5, lineHeight: 54 },
-  totalUnit: { color: colors.primary, fontSize: 17, fontWeight: '900', marginLeft: spacing.xs },
+  totalValue: { color: colors.ink, fontSize: 32, fontWeight: '600', letterSpacing: -0.8, lineHeight: 42 },
+  totalUnit: { color: colors.primary, fontSize: 17, fontWeight: '700', marginLeft: spacing.xs },
   scanIcon: { alignItems: 'center', backgroundColor: colors.primary, borderRadius: radius.md, height: 48, justifyContent: 'center', width: 48 },
   summaryGrid: { borderTopColor: colors.line, borderTopWidth: 1, flexDirection: 'row', gap: spacing.sm, paddingTop: spacing.md },
   summaryStat: { alignItems: 'center', backgroundColor: colors.surfaceMuted, borderRadius: radius.md, flex: 1, flexDirection: 'row', gap: spacing.sm, minHeight: 58, padding: spacing.sm },
-  summaryValue: { color: colors.ink, fontSize: 16, fontWeight: '900' },
-  summaryLabel: { color: colors.muted, fontSize: 10, fontWeight: '800', marginTop: 2 },
+  summaryValue: { color: colors.ink, fontSize: 16, fontWeight: '700' },
+  summaryLabel: { color: colors.muted, fontSize: 10, fontWeight: '600', marginTop: 2 },
   filterRow: { alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   filterButton: { alignItems: 'center', backgroundColor: colors.surfaceMuted, borderColor: colors.line, borderRadius: 999, borderWidth: 1, minHeight: 40, paddingHorizontal: spacing.md, justifyContent: 'center' },
   filterButtonSelected: { backgroundColor: colors.activeSoft, borderColor: colors.active },
-  filterText: { color: colors.muted, fontSize: 12, fontWeight: '900' },
+  filterText: { color: colors.muted, fontSize: 12, fontWeight: '700' },
   filterTextSelected: { color: colors.active },
   refreshButton: { alignItems: 'center', backgroundColor: colors.activeSoft, borderRadius: radius.md, height: 40, justifyContent: 'center', marginLeft: 'auto', width: 40 },
   error: { color: colors.danger, fontSize: 13, lineHeight: 20 },
@@ -364,19 +360,19 @@ const styles = StyleSheet.create({
   loadingText: { ...type.meta },
   emptyCard: { alignItems: 'flex-start', gap: spacing.sm },
   emptyIcon: { alignItems: 'center', backgroundColor: colors.activeSoft, borderRadius: radius.md, height: 48, justifyContent: 'center', width: 48 },
-  emptyTitle: { color: colors.ink, fontSize: 18, fontWeight: '900' },
+  emptyTitle: { color: colors.ink, fontSize: 18, fontWeight: '700' },
   emptyBody: { ...type.body, marginBottom: spacing.xs },
   listSection: { gap: spacing.md },
   listHeading: { alignItems: 'center', flexDirection: 'row', gap: spacing.sm },
-  listEyebrow: { color: colors.active, fontSize: 10, fontWeight: '900', letterSpacing: 1.5 },
+  listEyebrow: { color: colors.active, fontSize: 10, fontWeight: '700', letterSpacing: 1.5 },
   listTitle: { ...type.section },
-  listCount: { color: colors.muted, fontSize: 12, fontWeight: '800', marginLeft: 'auto' },
+  listCount: { color: colors.muted, fontSize: 12, fontWeight: '600', marginLeft: 'auto' },
   cardList: { gap: spacing.md },
   historyCard: { backgroundColor: colors.surface, borderColor: colors.line, borderRadius: radius.xl, borderWidth: 1, overflow: 'hidden', padding: spacing.lg },
   cardTop: { alignItems: 'center', flexDirection: 'row', gap: spacing.md },
   cardCopy: { alignItems: 'flex-start', flex: 1, gap: 3, minWidth: 0 },
   statusBadge: { borderRadius: 999, paddingHorizontal: spacing.sm, paddingVertical: 5 },
-  statusText: { fontSize: 10, fontWeight: '900' },
+  statusText: { fontSize: 10, fontWeight: '700' },
   savedBadge: { backgroundColor: colors.completedSoft },
   savedText: { color: colors.completed },
   reviewBadge: { backgroundColor: colors.activeSoft },
@@ -385,16 +381,16 @@ const styles = StyleSheet.create({
   failedText: { color: colors.danger },
   processingBadge: { backgroundColor: colors.warningSoft },
   processingText: { color: colors.warning },
-  cardName: { color: colors.ink, fontSize: 17, fontWeight: '900', marginTop: 2 },
-  cardBrand: { color: colors.muted, fontSize: 12, fontWeight: '800' },
+  cardName: { color: colors.ink, fontSize: 17, fontWeight: '700', marginTop: 2 },
+  cardBrand: { color: colors.muted, fontSize: 12, fontWeight: '600' },
   metaRow: { alignItems: 'center', borderTopColor: colors.line, borderTopWidth: 1, flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.md, paddingTop: spacing.md },
-  dateText: { color: colors.inkSoft, fontSize: 11, fontWeight: '900' },
-  metaText: { color: colors.muted, fontSize: 11, fontWeight: '800' },
+  dateText: { color: colors.inkSoft, fontSize: 11, fontWeight: '700' },
+  metaText: { color: colors.muted, fontSize: 11, fontWeight: '600' },
   reviewSignal: { alignItems: 'center', flexDirection: 'row', gap: 3 },
-  reviewSignalText: { color: colors.warning, fontSize: 11, fontWeight: '900' },
+  reviewSignalText: { color: colors.warning, fontSize: 11, fontWeight: '700' },
   warningSignal: { alignItems: 'center', flexDirection: 'row', gap: 3 },
-  warningSignalText: { color: colors.danger, fontSize: 11, fontWeight: '900' },
+  warningSignalText: { color: colors.danger, fontSize: 11, fontWeight: '700' },
   cardAction: { alignItems: 'center', backgroundColor: colors.surfaceMuted, borderRadius: radius.md, flexDirection: 'row', gap: spacing.sm, justifyContent: 'center', marginTop: spacing.md, minHeight: 42, paddingHorizontal: spacing.md },
-  cardActionText: { color: colors.active, fontSize: 12, fontWeight: '900' },
+  cardActionText: { color: colors.active, fontSize: 12, fontWeight: '700' },
   pressed: { opacity: 0.74 },
 });
