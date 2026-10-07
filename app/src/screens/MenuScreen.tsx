@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Alert, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Alert, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import {
   Bell,
   ChevronRight,
@@ -11,6 +11,7 @@ import {
   History,
   LogOut,
   ScanSearch,
+  Share2,
   ShieldCheck,
 } from 'lucide-react-native';
 import { useAuth } from '../auth/AuthContext';
@@ -86,6 +87,18 @@ export default function MenuScreen() {
     ]);
   }
 
+  async function openInstallGuide() {
+    if (Platform.OS === 'web') {
+      window.location.assign('/install.html');
+      return;
+    }
+    try {
+      await Linking.openURL('https://pill-web-production.up.railway.app/install.html');
+    } catch {
+      Alert.alert('설치 안내를 열 수 없어요', '네트워크 연결을 확인하고 다시 시도해 주세요.');
+    }
+  }
+
   function openAccountManagement() {
     setActiveInfo({
       title: '계정 관리',
@@ -133,6 +146,15 @@ export default function MenuScreen() {
               title="복용 기록"
               body="완료·건너뜀·미복용 내역을 날짜별로 확인"
               onPress={() => navigation.navigate('DoseHistory')}
+            />
+          </MenuSection>
+
+          <MenuSection eyebrow="WITH PILL" title="설치와 공유">
+            <MenuRow
+              icon={<Share2 size={21} color={colors.active} strokeWidth={2.5} />}
+              title="앱 설치 · 친구에게 공유"
+              body="홈 화면 설치 안내와 공유 링크·QR"
+              onPress={() => void openInstallGuide()}
             />
           </MenuSection>
 

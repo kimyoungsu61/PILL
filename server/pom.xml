@@ -64,6 +64,19 @@
     </dependencies>
 
     <build>
+        <testResources>
+            <testResource>
+                <directory>src/test/resources</directory>
+            </testResource>
+            <testResource>
+                <directory>../app/public</directory>
+                <targetPath>static</targetPath>
+                <includes>
+                    <include>install.*</include>
+                    <include>icons/pill-install-qr.*</include>
+                </includes>
+            </testResource>
+        </testResources>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
