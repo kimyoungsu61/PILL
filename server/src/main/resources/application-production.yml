@@ -1,0 +1,22 @@
+spring:
+  datasource:
+    url: ${PILL_DB_URL}
+    username: ${PILL_DB_USERNAME}
+    password: ${PILL_DB_PASSWORD}
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 1
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:db/schema_mysql.sql,classpath:db/web_push.sql
+      continue-on-error: false
+  jpa:
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+    hibernate:
+      ddl-auto: validate
+server:
+  forward-headers-strategy: framework

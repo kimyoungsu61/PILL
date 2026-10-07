@@ -1,0 +1,32 @@
+server:
+  port: ${PORT:8080}
+  error:
+    include-message: never
+    include-binding-errors: never
+    include-stacktrace: never
+
+spring:
+  autoconfigure:
+    exclude: org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
+  servlet:
+    multipart:
+      max-file-size: 8MB
+      max-request-size: 16MB
+  datasource:
+    url: ${PILL_DB_URL:jdbc:mysql://localhost:3306/pill_db?useSSL=false&serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
+    username: ${PILL_DB_USERNAME:pill_user}
+    password: ${PILL_DB_PASSWORD}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: false
+
+pill:
+  auth:
+    session-ttl: PT720H
+  gemini:
+    api-key: ${GEMINI_API_KEY:}
+    endpoint: https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent

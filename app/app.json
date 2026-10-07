@@ -1,0 +1,46 @@
+{
+  "expo": {
+    "name": "PILL",
+    "slug": "pill",
+    "version": "1.0.0",
+    "orientation": "default",
+    "scheme": "pill",
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ],
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "영양제 라벨 사진을 선택하기 위해 사진 보관함에 접근합니다.",
+          "cameraPermission": "영양제 라벨을 촬영하기 위해 카메라를 사용합니다.",
+          "microphonePermission": false
+        }
+      ],
+      "expo-notifications",
+      "expo-secure-store",
+      "expo-dev-client"
+    ],
+    "ios": {
+      "bundleIdentifier": "com.cobaltritual.pill"
+    },
+    "android": {
+      "package": "com.cobaltritual.pill",
+      "versionCode": 1,
+      "permissions": [
+        "android.permission.SCHEDULE_EXACT_ALARM"
+      ]
+    },
+    "extra": {
+      "eas": {
+        "projectId": "bcb2ca12-f17a-4afa-927f-14c2b53913c3"
+      }
+    },
+    "owner": "qjqjqj",
+    "web": {
+      "favicon": "./public/icons/pill-192.png"
+    }
+  }
+}
