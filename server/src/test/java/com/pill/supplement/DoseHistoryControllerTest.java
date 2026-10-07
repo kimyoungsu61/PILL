@@ -13,10 +13,17 @@ import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Primary;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -33,7 +40,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
     "spring.jpa.hibernate.ddl-auto=create-drop"
 })
 @AutoConfigureMockMvc
+@Import(DoseHistoryControllerTest.TimeConfiguration.class)
 class DoseHistoryControllerTest {
+    @Autowired Clock clock;
     @Autowired MockMvc mvc;
     @Autowired AuthSessionService sessions;
     @Autowired UserRepository users;
@@ -49,7 +58,7 @@ class DoseHistoryControllerTest {
         var other = users.save(new User("history-other@example.com", "hash"));
         var mine = saveSupplement(user, "Morning Vitamin");
         var hidden = saveSupplement(other, "Hidden Vitamin");
-        var today = LocalDate.now();
+        var today = LocalDate.now(clock);
 
         doseLogs.save(new DoseLog(mine, today, "09:00", "TAKEN", "after breakfast"));
         doseLogs.save(new DoseLog(mine, today.minusDays(1), "09:00", "SKIPPED", ""));
@@ -74,7 +83,7 @@ class DoseHistoryControllerTest {
         var supplement = saveSupplement(user, "Twice Daily", "00:00,23:59");
         jdbc.update(
             "update user_supplement set created_at = ? where id = ?",
-            LocalDateTime.now().minusDays(1).withHour(0).withMinute(0).withSecond(0).withNano(0),
+            LocalDateTime.now(clock).minusDays(1).withHour(0).withMinute(0).withSecond(0).withNano(0),
             supplement.getId()
         );
         entityManager.clear();
@@ -111,7 +120,7 @@ class DoseHistoryControllerTest {
 
     private UserSupplement saveSupplement(User user, String productName, String doseTimes) {
         var scan = scans.save(new SupplementScan(user, "{}", "COMPLETED"));
-        return userSupplements.save(new UserSupplement(
+        var supplement = userSupplements.save(new UserSupplement(
             user,
             scan,
             "Healthy Labs",
@@ -123,5 +132,20 @@ class DoseHistoryControllerTest {
             "",
             doseTimes
         ));
+        // Match fixture creation to the API clock on every host time zone.
+        jdbc.update(
+            "update user_supplement set created_at = ? where id = ?",
+            LocalDateTime.now(clock), supplement.getId()
+        );
+        return supplement;
+    }
+
+    @TestConfiguration
+    static class TimeConfiguration {
+        @Bean
+        @Primary
+        Clock historyTestClock() {
+            return Clock.fixed(Instant.parse("2026-01-15T03:00:00Z"), ZoneId.of("Asia/Seoul"));
+        }
     }
 }
