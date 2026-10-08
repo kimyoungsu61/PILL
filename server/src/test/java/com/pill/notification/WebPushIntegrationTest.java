@@ -46,7 +46,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Transactional
 class WebPushIntegrationTest {
     @Autowired MockMvc mvc;@Autowired DataSource dataSource;@Autowired ObjectMapper json;
-    @Autowired WebPushService service;@Autowired WebPushStore store;@Autowired WebPushDispatcher dispatcher;
+    @Autowired WebPushService service;@Autowired WebPushStore store;@Autowired WebPushDispatcher dispatcher;@Autowired WebPushScheduler scheduler;
     @Autowired AuthSessionService sessions;@Autowired UserRepository users;@Autowired SupplementScanRepository scans;
     @Autowired UserSupplementRepository supplements;@Autowired DoseLogRepository logs;@Autowired SupplementService supplementService;
     @Autowired jakarta.persistence.EntityManager entityManager;
@@ -129,12 +129,46 @@ class WebPushIntegrationTest {
         assertThat(reconnected.id()).isEqualTo(state.id());assertThat(reconnected.reminders()).hasSize(1);
         assertThatThrownBy(()->service.state(principal,state.id())).isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
     }
-    @Test void supplementDeletionCascadesAndEditedTimesStopOldReminder() throws Exception {
+    @Test void supplementDeletionCascadesAndEditedTimesRescheduleSelectedReminder() throws Exception {
         var state=connect("delete");service.setTimes(principal,state.id(),product.getId(),List.of("09:00"));
         supplementService.updateDoseTimes(user.getId(),product.getId(),new UpdateDoseTimesRequest(List.of("10:00")));
-        assertThat(service.state(principal,state.id()).reminders()).isEmpty();
+        assertThat(service.state(principal,state.id()).reminders()).extracting(WebPushStore.ReminderView::time).containsExactly("10:00");
         when(clock.instant()).thenReturn(Instant.parse("2026-10-07T00:00:10Z"));for(var id:store.activeReminderIds(clock.instant()))dispatcher.dispatch(id);verify(sender,never()).send(any(),any());
+        when(clock.instant()).thenReturn(Instant.parse("2026-10-07T01:00:10Z"));scheduler.tick();scheduler.tick();verify(sender,times(1)).send(any(),any());
         supplementService.deleteSupplement(user.getId(),product.getId());assertThat(store.activeReminderIds(clock.instant())).isEmpty();
+    }
+    @Test void editingTimesPreservesEachDevicesChoicesAcrossSortOrder() throws Exception {
+        var first=connect("move-first");var second=connect("move-second");var off=connect("move-off");
+        service.setTimes(principal,first.id(),product.getId(),List.of("09:00"));
+        service.setTimes(principal,second.id(),product.getId(),List.of("19:00"));
+        supplementService.updateDoseTimes(user.getId(),product.getId(),new UpdateDoseTimesRequest(List.of("19:00","21:00")));
+        assertThat(service.state(principal,first.id()).reminders()).extracting(WebPushStore.ReminderView::time).containsExactly("21:00");
+        assertThat(service.state(principal,second.id()).reminders()).extracting(WebPushStore.ReminderView::time).containsExactly("19:00");
+        assertThat(service.state(principal,off.id()).reminders()).isEmpty();
+        supplementService.updateDoseTimes(user.getId(),product.getId(),new UpdateDoseTimesRequest(List.of("19:00","21:00","22:00")));
+        assertThat(service.state(principal,first.id()).reminders()).extracting(WebPushStore.ReminderView::time).containsExactly("21:00");
+        supplementService.updateDoseTimes(user.getId(),product.getId(),new UpdateDoseTimesRequest(List.of("19:00","22:00")));
+        assertThat(service.state(principal,first.id()).reminders()).isEmpty();
+    }
+    @Test void editingAnEarlyMorningTimeRepairsPreviouslyStrandedReminderAndDispatchesOnce() throws Exception {
+        var state=connect("stranded");service.setTimes(principal,state.id(),product.getId(),List.of("19:00"));
+        // Reproduce an existing reservation left behind by the previous time editor.
+        product.updateConfirmedDoseTime("02:00");supplements.saveAndFlush(product);
+        assertThat(service.state(principal,state.id()).reminders()).isEmpty();
+        when(clock.instant()).thenReturn(Instant.parse("2026-10-08T16:59:00Z"));
+        supplementService.updateDoseTimes(user.getId(),product.getId(),new UpdateDoseTimesRequest(List.of("02:10")));
+        assertThat(service.state(principal,state.id()).reminders()).extracting(WebPushStore.ReminderView::time).containsExactly("02:10");
+        scheduler.tick();verify(sender,never()).send(any(),any());
+        when(clock.instant()).thenReturn(Instant.parse("2026-10-08T17:10:10Z"));
+        scheduler.tick();scheduler.tick();verify(sender,times(1)).send(any(),any());
+        var id=store.activeReminderIds(clock.instant()).getFirst();
+        assertThat(store.delivery(id,LocalDate.of(2026,10,9)).status()).isEqualTo("SENT");
+    }
+    @Test void savingAnUnchangedSingleTimeRepairsAnOldHiddenReservation() throws Exception {
+        var state=connect("stranded-unchanged");service.setTimes(principal,state.id(),product.getId(),List.of("19:00"));
+        product.updateConfirmedDoseTime("02:00");supplements.saveAndFlush(product);
+        supplementService.updateDoseTimes(user.getId(),product.getId(),new UpdateDoseTimesRequest(List.of("02:00")));
+        assertThat(service.state(principal,state.id()).reminders()).extracting(WebPushStore.ReminderView::time).containsExactly("02:00");
     }
     @Test void expiredPushDeviceIsDisabledAndTestEndpointPersistsExpiry() throws Exception {
         var state=connect("expired");when(sender.send(any(),any())).thenReturn(410);

@@ -1,5 +1,6 @@
 package com.pill.supplement;
 
+import com.pill.notification.WebPushStore;
 import com.pill.model.BlockedIngredient;
 import com.pill.model.DoseLog;
 import com.pill.model.DoseSchedule;
@@ -26,6 +27,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.jdbc.Sql;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -39,7 +41,8 @@ import static org.assertj.core.api.SoftAssertions.assertSoftly;
 import static org.assertj.core.api.Assertions.tuple;
 
 @DataJpaTest
-@Import({SupplementService.class, SupplementServiceTest.FixedClockConfiguration.class})
+@Import({SupplementService.class, WebPushStore.class, SupplementServiceTest.FixedClockConfiguration.class})
+@Sql("/db/web_push.sql")
 @TestPropertySource(properties = "spring.jpa.hibernate.ddl-auto=create-drop")
 class SupplementServiceTest {
     @Autowired SupplementService supplements;
