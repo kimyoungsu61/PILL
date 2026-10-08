@@ -12,16 +12,16 @@ type Props = {
 
 const toneColors = {
   indigo: { background: colors.activeSoft, text: colors.active },
-  blue: { background: colors.surfaceElevated, text: colors.inkSoft },
+  blue: { background: colors.surfaceMuted, text: colors.inkSoft },
   amber: { background: colors.completedSoft, text: colors.completed },
 };
 
-export default function SupplementThumb({ imageUri, name, size = 52, muted = false, tone = 'indigo' }: Props) {
+export default function SupplementThumb({ imageUri, name, size = 52, muted = false, tone = 'blue' }: Props) {
   const [failedUri, setFailedUri] = useState<string | null>(null);
   const showImage = Boolean(imageUri && failedUri !== imageUri);
   const palette = toneColors[tone];
   const frameStyle = {
-    borderRadius: radius.lg,
+    borderRadius: radius.md,
     height: size,
     width: size,
   };
@@ -51,7 +51,7 @@ const styles = StyleSheet.create({
   frame: {
     alignItems: 'center',
     borderColor: colors.line,
-    borderWidth: 1,
+    borderWidth: 0,
     justifyContent: 'center',
     overflow: 'hidden',
   },
@@ -64,6 +64,6 @@ const styles = StyleSheet.create({
     opacity: 0.68,
   },
   initial: {
-    fontWeight: '900',
+    fontWeight: '700',
   },
 });

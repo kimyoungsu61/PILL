@@ -38,7 +38,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderColor: colors.line,
     borderRadius: radius.xl,
-    borderWidth: 1,
+    borderWidth: 0,
   },
   active: {
     backgroundColor: colors.surface,

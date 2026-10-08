@@ -52,7 +52,7 @@ const styles = StyleSheet.create({
   title: {
     color: colors.warning,
     fontSize: 15,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   message: {
     ...type.body,

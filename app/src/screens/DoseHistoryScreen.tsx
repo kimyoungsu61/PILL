@@ -75,7 +75,6 @@ export default function DoseHistoryScreen({ navigation }: Props) {
     <ScrollView contentContainerStyle={styles.content} style={styles.screen}>
       <View style={[styles.rail, { maxWidth: contentRailWidth(width) }]}>
         <View style={styles.header}>
-          <Text style={styles.kicker}>DOSE HISTORY</Text>
           <Text style={styles.title}>복용 기록</Text>
           <Text style={styles.subtitle}>예정 시간이 지났는데 체크하지 않은 회차도 미복용으로 자동 집계해요.</Text>
         </View>
@@ -112,7 +111,6 @@ export default function DoseHistoryScreen({ navigation }: Props) {
         <RitualSurface style={styles.summaryCard} variant="active">
           <View style={styles.summaryHeading}>
             <View>
-              <Text style={styles.summaryKicker}>COMPLETION</Text>
               <Text style={styles.summaryLabel}>복용 완료율</Text>
             </View>
             <View style={styles.historyIcon}>
@@ -239,56 +237,56 @@ const styles = StyleSheet.create({
   content: { padding: spacing.xl, paddingBottom: 112 },
   rail: { alignSelf: 'center', gap: spacing.xl, width: '100%' },
   header: { gap: spacing.xs },
-  kicker: { color: colors.active, fontSize: 11, fontWeight: '900', letterSpacing: 2.2 },
+  kicker: { color: colors.active, fontSize: 11, fontWeight: '700', letterSpacing: 2.2 },
   title: { ...type.hero, fontSize: 30, lineHeight: 38 },
   subtitle: { ...type.body, color: colors.inkSoft },
   rangeRow: { alignItems: 'center', flexDirection: 'row', gap: spacing.sm },
   rangeButton: { alignItems: 'center', backgroundColor: colors.surfaceMuted, borderColor: colors.line, borderRadius: 999, borderWidth: 1, minHeight: 42, minWidth: 66, paddingHorizontal: spacing.md, justifyContent: 'center' },
   rangeButtonSelected: { backgroundColor: colors.activeSoft, borderColor: colors.active },
-  rangeText: { color: colors.muted, fontSize: 13, fontWeight: '900' },
+  rangeText: { color: colors.muted, fontSize: 13, fontWeight: '700' },
   rangeTextSelected: { color: colors.active },
   refreshButton: { alignItems: 'center', backgroundColor: colors.activeSoft, borderRadius: radius.md, height: 42, justifyContent: 'center', marginLeft: 'auto', width: 42 },
   summaryCard: { gap: spacing.md },
   summaryHeading: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
-  summaryKicker: { color: colors.active, fontSize: 10, fontWeight: '900', letterSpacing: 1.5 },
-  summaryLabel: { color: colors.inkSoft, fontSize: 14, fontWeight: '900', marginTop: spacing.xs },
+  summaryKicker: { color: colors.active, fontSize: 10, fontWeight: '700', letterSpacing: 1.5 },
+  summaryLabel: { color: colors.inkSoft, fontSize: 14, fontWeight: '700', marginTop: spacing.xs },
   historyIcon: { alignItems: 'center', backgroundColor: colors.primary, borderRadius: radius.md, height: 44, justifyContent: 'center', width: 44 },
   rateRow: { alignItems: 'baseline', flexDirection: 'row' },
-  rateValue: { color: colors.primary, fontSize: 56, fontWeight: '900', letterSpacing: -2, lineHeight: 60 },
-  rateUnit: { color: colors.primary, fontSize: 22, fontWeight: '900', marginLeft: spacing.xs },
-  rangeLabel: { color: colors.muted, fontSize: 12, fontWeight: '800' },
+  rateValue: { color: colors.ink, fontSize: 36, fontWeight: '600', letterSpacing: -1, lineHeight: 46 },
+  rateUnit: { color: colors.muted, fontSize: 18, fontWeight: '700', marginLeft: spacing.xs },
+  rangeLabel: { color: colors.muted, fontSize: 12, fontWeight: '600' },
   progressTrack: { backgroundColor: colors.surfaceMuted, borderRadius: 999, height: 8, overflow: 'hidden' },
   progressFill: { backgroundColor: colors.primary, borderRadius: 999, height: '100%' },
   statsRow: { alignItems: 'center', borderTopColor: colors.line, borderTopWidth: 1, flexDirection: 'row', paddingTop: spacing.md },
   statItem: { alignItems: 'center', flex: 1, flexDirection: 'row', gap: spacing.sm, justifyContent: 'center' },
   statDivider: { backgroundColor: colors.line, height: 34, width: 1 },
-  statValue: { color: colors.ink, fontSize: 17, fontWeight: '900' },
-  statLabel: { color: colors.muted, fontSize: 11, fontWeight: '800', marginTop: 2 },
+  statValue: { color: colors.ink, fontSize: 17, fontWeight: '700' },
+  statLabel: { color: colors.muted, fontSize: 11, fontWeight: '600', marginTop: 2 },
   error: { color: colors.danger, fontSize: 14, lineHeight: 20 },
   loadingRow: { alignItems: 'center', flexDirection: 'row', gap: spacing.sm, justifyContent: 'center', minHeight: 90 },
   loadingText: { ...type.meta },
   emptyCard: { alignItems: 'flex-start', gap: spacing.sm },
   emptyIcon: { alignItems: 'center', backgroundColor: colors.activeSoft, borderRadius: radius.md, height: 46, justifyContent: 'center', width: 46 },
-  emptyTitle: { color: colors.ink, fontSize: 17, fontWeight: '900' },
+  emptyTitle: { color: colors.ink, fontSize: 17, fontWeight: '700' },
   emptyBody: { ...type.body },
   dateSection: { gap: spacing.sm },
   dateHeader: { alignItems: 'center', flexDirection: 'row', gap: spacing.sm, paddingHorizontal: spacing.xs },
   dateDot: { backgroundColor: colors.active, borderRadius: 999, height: 8, width: 8 },
   dateTitle: { ...type.section },
-  dateCount: { color: colors.muted, fontSize: 12, fontWeight: '800', marginLeft: 'auto' },
+  dateCount: { color: colors.muted, fontSize: 12, fontWeight: '600', marginLeft: 'auto' },
   entriesCard: { overflow: 'hidden' },
   entryRow: { alignItems: 'center', flexDirection: 'row', gap: spacing.md, minHeight: 82, padding: spacing.md },
   entryDivider: { borderBottomColor: colors.line, borderBottomWidth: 1 },
   entryCopy: { flex: 1, gap: 2, minWidth: 0 },
-  entryName: { color: colors.ink, fontSize: 15, fontWeight: '900' },
-  entryTime: { color: colors.muted, fontSize: 12, fontWeight: '800' },
+  entryName: { color: colors.ink, fontSize: 15, fontWeight: '700' },
+  entryTime: { color: colors.muted, fontSize: 12, fontWeight: '600' },
   entryMemo: { color: colors.faint, fontSize: 11, marginTop: 2 },
   entryTrailing: { alignItems: 'center', flexDirection: 'row', gap: spacing.sm },
   statusBadge: { borderRadius: 999, paddingHorizontal: spacing.sm, paddingVertical: 6 },
   takenBadge: { backgroundColor: colors.completedSoft },
   skippedBadge: { backgroundColor: colors.warningSoft },
   missedBadge: { backgroundColor: colors.dangerSoft },
-  statusText: { fontSize: 11, fontWeight: '900' },
+  statusText: { fontSize: 11, fontWeight: '700' },
   takenText: { color: colors.completed },
   skippedText: { color: colors.warning },
   missedText: { color: colors.danger },

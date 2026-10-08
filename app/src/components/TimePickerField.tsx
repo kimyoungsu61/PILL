@@ -149,13 +149,13 @@ const styles = StyleSheet.create({
     ...type.meta,
     color: colors.muted,
     fontSize: 11,
-    fontWeight: '900',
+    fontWeight: '700',
     lineHeight: 14,
   },
   fieldValue: {
     color: colors.ink,
     fontSize: 18,
-    fontWeight: '900',
+    fontWeight: '700',
     letterSpacing: 0,
     lineHeight: 24,
   },
@@ -234,19 +234,19 @@ const styles = StyleSheet.create({
   numberText: {
     color: colors.ink,
     fontSize: 38,
-    fontWeight: '900',
+    fontWeight: '700',
     letterSpacing: 0,
     lineHeight: 46,
   },
   numberLabel: {
     ...type.meta,
     color: colors.sage,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   colon: {
     color: colors.sage,
     fontSize: 34,
-    fontWeight: '900',
+    fontWeight: '700',
     marginTop: 4,
   },
   actions: {
@@ -266,7 +266,7 @@ const styles = StyleSheet.create({
   secondaryText: {
     color: colors.inkSoft,
     fontSize: 15,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   primaryButton: {
     alignItems: 'center',
@@ -279,7 +279,7 @@ const styles = StyleSheet.create({
   primaryText: {
     color: colors.primaryText,
     fontSize: 15,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   pressed: {
     opacity: 0.74,

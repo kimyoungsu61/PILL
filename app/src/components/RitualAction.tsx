@@ -87,7 +87,7 @@ const styles = StyleSheet.create({
   quiet: {},
   danger: {
     backgroundColor: colors.dangerSoft,
-    borderColor: colors.danger,
+    borderColor: colors.dangerSoft,
     borderWidth: 1,
   },
   content: {

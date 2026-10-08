@@ -1,0 +1,31 @@
+{
+  "figmaFile": "https://www.figma.com/design/v0tLh7XCFWT7KBsjuOtEoC",
+  "figmaMotionNode": "2:38",
+  "figmaLaunchNode": "2:27",
+  "colors": {
+    "primary": "#385BCE",
+    "secondary": "#C4D2FF",
+    "background": "#F7F8FA",
+    "ink": "#202733"
+  },
+  "phases": [
+    {
+      "from": 0,
+      "to": 500,
+      "label": "Capsule halves settle"
+    },
+    {
+      "from": 340,
+      "to": 640,
+      "label": "Wordmark fades and moves 6px into position"
+    },
+    {
+      "from": 900,
+      "to": 1080,
+      "label": "App content revealed after auth restoration"
+    }
+  ],
+  "reducedMotion": "Static lockup; no intentional delay",
+  "repeat": "Once per app mount; navigation and logins do not replay",
+  "nativeLaunchScreen": "OS launch screen remains static; animation runs within app content"
+}

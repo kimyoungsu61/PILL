@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { registerWebPushWorker } from '../notifications/webPush';
-import { ActivityIndicator, Platform, StatusBar, View } from 'react-native';
+import { ActivityIndicator, Platform, StatusBar, StyleSheet, View } from 'react-native';
 import { NavigationContainer, useNavigationContainerRef } from '@react-navigation/native';
 import type { NavigatorScreenParams } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -73,13 +73,13 @@ function MainTabs() {
           borderRadius: 12,
         },
         tabBarLabelPosition: 'below-icon',
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '800', height: 18, lineHeight: 16, marginTop: 1, overflow: 'visible' },
+        tabBarLabelStyle: { fontSize: 11, fontWeight: '600', height: 18, lineHeight: 16, marginTop: 1, overflow: 'visible' },
         tabBarShowLabel: true,
         tabBarStyle: {
           backgroundColor: colors.surfaceElevated,
           borderColor: colors.line,
-          borderTopWidth: 1,
-          height: 72 + Math.max(insets.bottom, spacing.sm),
+          borderTopWidth: StyleSheet.hairlineWidth,
+          height: 64 + Math.max(insets.bottom, spacing.sm),
           overflow: 'hidden',
           paddingBottom: Math.max(insets.bottom, spacing.sm),
           paddingTop: spacing.xs,
@@ -91,7 +91,7 @@ function MainTabs() {
         component={TodayScreen}
         options={{
           title: '오늘',
-          tabBarIcon: ({ color, size }) => <CalendarCheck2 color={color} size={size} strokeWidth={2.4} />,
+          tabBarIcon: ({ color, size }) => <CalendarCheck2 color={color} size={size} strokeWidth={1.8} />,
         }}
       />
       <Tab.Screen
@@ -99,7 +99,7 @@ function MainTabs() {
         component={SupplementsScreen}
         options={{
           title: '영양제',
-          tabBarIcon: ({ color, size }) => <Pill color={color} size={size} strokeWidth={2.4} />,
+          tabBarIcon: ({ color, size }) => <Pill color={color} size={size} strokeWidth={1.8} />,
         }}
       />
       <Tab.Screen
@@ -107,7 +107,7 @@ function MainTabs() {
         component={MenuScreen}
         options={{
           title: '설정',
-          tabBarIcon: ({ color, size }) => <Settings color={color} size={size} strokeWidth={2} />,
+          tabBarIcon: ({ color, size }) => <Settings color={color} size={size} strokeWidth={1.8} />,
         }}
       />
     </Tab.Navigator>

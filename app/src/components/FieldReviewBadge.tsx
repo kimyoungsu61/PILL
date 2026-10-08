@@ -22,7 +22,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     color: colors.danger,
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
   },

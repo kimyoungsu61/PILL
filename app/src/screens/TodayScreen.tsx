@@ -2,7 +2,7 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NavigationProp } from '@react-navigation/native';
-import { Bell, ChevronRight, Clock3, Plus } from 'lucide-react-native';
+import { Bell, ChevronRight, Plus } from 'lucide-react-native';
 import { apiRequest } from '../api/client';
 import type { HomeResponse, TodayDose } from '../api/types';
 import { useAuth } from '../auth/AuthContext';
@@ -102,35 +102,29 @@ export default function TodayScreen() {
           <View style={styles.topbar}>
             <Text style={styles.wordmark}>PILL</Text>
             <Pressable accessibilityRole="button" accessibilityLabel="알림 설정" onPress={() => navigation.navigate('NotificationSettings')} style={styles.iconButton}>
-              <Bell size={21} strokeWidth={2.2} color={colors.active} />
+              <Bell size={22} strokeWidth={1.8} color={colors.inkSoft} />
             </Pressable>
           </View>
-          <View style={styles.hero}>
-            <Text style={styles.heroDate}>{new Intl.DateTimeFormat('ko-KR', { month: 'long', day: 'numeric', weekday: 'long' }).format(new Date())}</Text>
-            <Text style={styles.heroTitle}>오늘의 복용</Text>
-            <View style={styles.progressCard}>
-              <View style={styles.progressTop}>
-                <View>
-                  <Text style={styles.progressCaption}>오늘의 달성률</Text>
-                  <Text style={styles.percent}>{doses.length ? `${percent}%` : '—'}</Text>
-                </View>
-                <View style={styles.remainingPill}>
-                  <Text style={styles.remainingText}>{isLoading && !doses.length ? '불러오는 중' : doses.length ? remaining ? `${remaining}회 남았어요` : '오늘 모두 완료했어요' : '예정된 복용 없음'}</Text>
-                </View>
-              </View>
-              <View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${percent}%` }]} /></View>
+          <View style={styles.heading}>
+            <View style={styles.headingCopy}>
+              <Text style={styles.heroDate}>{new Intl.DateTimeFormat('ko-KR', { month: 'long', day: 'numeric', weekday: 'long' }).format(new Date())}</Text>
+              <Text style={styles.heroTitle}>오늘의 복용</Text>
             </View>
+            <Pressable accessibilityRole="button" accessibilityLabel="영양제 추가" onPress={() => setShowAdd(true)} style={styles.addButton}>
+              <Plus size={18} color={colors.active} strokeWidth={2} />
+              <Text style={styles.addButtonText}>추가</Text>
+            </Pressable>
           </View>
 
-          <View style={styles.actions}>
-            <Pressable accessibilityRole="button" onPress={() => setShowAdd(true)} style={styles.addButton}>
-              <Plus size={18} color={colors.white} strokeWidth={2.8} />
-              <Text style={styles.addButtonText}>영양제 추가</Text>
-            </Pressable>
-            <Pressable accessibilityRole="button" onPress={() => navigation.navigate('MainTabs', { screen: 'Supplements' })} style={styles.collectionButton}>
-              <Text style={styles.collectionButtonText}>내 영양제</Text>
-              <ChevronRight size={17} color={colors.active} />
-            </Pressable>
+          <View style={styles.progressCard}>
+            <View style={styles.progressTop}>
+              <View>
+                <Text style={styles.progressCaption}>오늘의 기록</Text>
+                <Text style={styles.progressValue}>{done}<Text style={styles.progressTotal}> / {doses.length}회</Text></Text>
+              </View>
+              <Text style={styles.remainingText}>{isLoading && !doses.length ? '불러오는 중' : doses.length ? remaining ? `${remaining}회 남았어요` : '모두 기록했어요' : '예정된 복용 없음'}</Text>
+            </View>
+            <View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${percent}%` }]} /></View>
           </View>
 
           {error ? <View style={styles.error}>
@@ -139,33 +133,34 @@ export default function TodayScreen() {
           </View> : null}
 
           <View style={styles.sectionHeading}>
-            <View>
-              <Text style={styles.sectionTitle}>오늘의 일정</Text>
-              <Text style={styles.sectionSubtitle}>시간에 맞춰 하나씩 기록해요</Text>
-            </View>
-            <Text style={styles.sectionCount}>{doses.length ? `${done}/${doses.length} 완료` : ''}</Text>
+            <Text style={styles.sectionTitle}>복용 일정</Text>
+            <Pressable accessibilityRole="button" onPress={() => navigation.navigate('MainTabs', { screen: 'Supplements' })} style={styles.collectionButton}>
+              <Text style={styles.collectionButtonText}>내 영양제</Text>
+              <ChevronRight size={15} color={colors.muted} />
+            </Pressable>
           </View>
 
           {groups.length ? groups.map(([time, timeDoses]) => (
             <View key={time || 'unset'} style={styles.timeGroup}>
               <View style={styles.timeHeading}>
-                <Clock3 size={17} color={colors.active} />
+                <View style={[styles.timeDot, timeDoses.every(dose => dose.status === 'TAKEN') && styles.timeDotDone]} />
                 <Text style={styles.timeText}>{timeLabel(time)}</Text>
+                <View style={styles.timeLine} />
                 <Text style={styles.timeCount}>{timeDoses.length}개</Text>
               </View>
               <View style={styles.doseGroup}>
                 {timeDoses.map((dose, index) => (
-                <View key={dose.supplementId + '-' + (dose.confirmedTime ?? 'default')} style={index ? styles.doseDivider : undefined}>
-                  <DoseCheckRow dose={dose} showTime={false} disabled={isPosting || isLoading}
-                    onClear={() => void toggleDose(dose)} onTaken={() => void toggleDose(dose)}
-                    onOpen={() => navigation.navigate('SupplementDetail', { supplementId: dose.supplementId })} />
-                </View>
+                  <View key={dose.supplementId + '-' + (dose.confirmedTime ?? 'default')} style={index ? styles.doseDivider : undefined}>
+                    <DoseCheckRow dose={dose} showTime={false} disabled={isPosting || isLoading}
+                      onClear={() => void toggleDose(dose)} onTaken={() => void toggleDose(dose)}
+                      onOpen={() => navigation.navigate('SupplementDetail', { supplementId: dose.supplementId })} />
+                  </View>
                 ))}
               </View>
             </View>
           )) : !isLoading && !error ? <View style={styles.empty}>
-            <Text style={styles.emptyTitle}>{home.supplements.length ? '오늘 예정된 복용이 없어요' : '첫 영양제를 등록해 보세요'}</Text>
-            <Text style={styles.emptyBody}>{home.supplements.length ? '등록한 영양제에서 복용 시간을 확인할 수 있어요.' : '제품을 등록하면 오늘의 복용 일정이 여기에 보여요.'}</Text>
+            <Text style={styles.emptyTitle}>{home.supplements.length ? '오늘 예정된 복용이 없어요' : '복용할 영양제를 추가해 주세요'}</Text>
+            <Text style={styles.emptyBody}>{home.supplements.length ? '내 영양제에서 복용 시간을 확인할 수 있어요.' : '라벨을 촬영하거나 직접 입력하면 복용 일정을 정리할 수 있어요.'}</Text>
           </View> : null}
 
           <View style={styles.feedback} accessibilityLiveRegion="polite">
@@ -174,7 +169,7 @@ export default function TodayScreen() {
           </View>
           <Pressable accessibilityRole="button" onPress={() => navigation.navigate('DoseHistory')} style={styles.history}>
             <Text style={styles.historyText}>지난 복용 기록</Text>
-            <ChevronRight size={17} color={colors.active} />
+            <ChevronRight size={17} color={colors.muted} />
           </Pressable>
         </View>
       </ScrollView>
@@ -186,46 +181,47 @@ export default function TodayScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  content: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 44 },
+  content: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 32 },
   rail: { width: '100%', maxWidth: 720, alignSelf: 'center' },
-  topbar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 },
-  wordmark: { color: colors.active, fontSize: 19, fontWeight: '900', letterSpacing: 2.5 },
-  iconButton: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface },
-  hero: { borderRadius: 26, backgroundColor: '#253F9A', padding: 18, marginBottom: 16 },
-  heroDate: { color: '#D5DEFB', fontSize: 13, fontWeight: '700' },
-  heroTitle: { color: colors.white, fontSize: 25, fontWeight: '900', marginTop: 5, marginBottom: 17 },
-  progressCard: { backgroundColor: colors.surface, borderRadius: 19, paddingHorizontal: 16, paddingVertical: 13 },
+  topbar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
+  wordmark: { color: colors.active, fontSize: 20, fontWeight: '700', letterSpacing: 1.2 },
+  iconButton: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center', marginRight: -10 },
+  heading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 24 },
+  headingCopy: { flex: 1, minWidth: 0 },
+  heroDate: { color: colors.muted, fontSize: 13, lineHeight: 20 },
+  heroTitle: { color: colors.ink, fontSize: 30, lineHeight: 40, fontWeight: '700', letterSpacing: -0.8, marginTop: 4 },
+  addButton: { minHeight: 48, paddingHorizontal: 12, borderRadius: 12, backgroundColor: colors.activeSoft, flexDirection: 'row', alignItems: 'center', gap: 5 },
+  addButtonText: { color: colors.active, fontSize: 13, fontWeight: '600' },
+  progressCard: { backgroundColor: colors.surface, borderRadius: 16, padding: 20, marginBottom: 26 },
   progressTop: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 },
-  progressCaption: { color: colors.muted, fontSize: 12, fontWeight: '700' },
-  percent: { color: colors.ink, fontSize: 39, lineHeight: 45, fontWeight: '900', fontVariant: ['tabular-nums'] },
-  remainingPill: { backgroundColor: colors.activeSoft, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 4 },
-  remainingText: { color: colors.active, fontSize: 12, fontWeight: '800' },
-  progressTrack: { backgroundColor: colors.surfaceMuted, height: 7, borderRadius: 8, marginTop: 13, overflow: 'hidden' },
-  progressFill: { backgroundColor: colors.active, height: 7, borderRadius: 8 },
-  actions: { flexDirection: 'row', gap: 10, marginBottom: 30 },
-  addButton: { backgroundColor: colors.active, flex: 1, minHeight: 52, borderRadius: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
-  addButtonText: { color: colors.white, fontSize: 14, fontWeight: '900' },
-  collectionButton: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, minHeight: 52, paddingHorizontal: 15, borderRadius: 16, flexDirection: 'row', alignItems: 'center', gap: 2 },
-  collectionButtonText: { color: colors.active, fontSize: 13, fontWeight: '800' },
-  sectionHeading: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 18 },
-  sectionTitle: { color: colors.ink, fontSize: 23, fontWeight: '900', letterSpacing: -0.4 },
-  sectionSubtitle: { color: colors.muted, fontSize: 12, marginTop: 4 },
-  sectionCount: { color: colors.muted, fontSize: 12, fontWeight: '800', marginBottom: 3 },
-  timeGroup: { gap: 10, marginBottom: 22 },
-  timeHeading: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 2 },
-  timeText: { color: colors.active, fontSize: 14, fontWeight: '900' },
-  timeCount: { color: colors.faint, fontSize: 11, fontWeight: '800', marginLeft: 'auto' },
-  doseGroup: { backgroundColor: colors.surface, borderRadius: 20, borderColor: colors.line, borderWidth: 1, overflow: 'hidden' },
-  doseDivider: { borderTopColor: colors.line, borderTopWidth: 1 },
-  empty: { padding: 22, gap: 10, alignItems: 'flex-start', backgroundColor: colors.surface, borderColor: colors.line, borderWidth: 1, borderRadius: 20 },
-  emptyTitle: { color: colors.ink, fontSize: 17, fontWeight: '900' },
-  emptyBody: { color: colors.muted, fontSize: 13, lineHeight: 21, marginBottom: 7 },
-  feedback: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 30 },
+  progressCaption: { color: colors.muted, fontSize: 12, marginBottom: 4 },
+  progressValue: { color: colors.ink, fontSize: 32, lineHeight: 40, fontWeight: '600', fontVariant: ['tabular-nums'], letterSpacing: -1 },
+  progressTotal: { color: colors.muted, fontSize: 16, fontWeight: '400', letterSpacing: 0 },
+  remainingText: { color: colors.inkSoft, fontSize: 12, lineHeight: 20, marginBottom: 6 },
+  progressTrack: { backgroundColor: colors.line, height: 4, borderRadius: 4, marginTop: 16, overflow: 'hidden' },
+  progressFill: { backgroundColor: colors.active, height: 4, borderRadius: 4 },
+  sectionHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  sectionTitle: { color: colors.ink, fontSize: 18, fontWeight: '600', letterSpacing: -0.3 },
+  collectionButton: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 1 },
+  collectionButtonText: { color: colors.muted, fontSize: 12, fontWeight: '500' },
+  timeGroup: { marginBottom: 22 },
+  timeHeading: { flexDirection: 'row', alignItems: 'center', gap: 9, marginBottom: 12 },
+  timeDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.active },
+  timeDotDone: { backgroundColor: colors.completed },
+  timeText: { color: colors.inkSoft, fontSize: 13, fontWeight: '600' },
+  timeLine: { height: 1, flex: 1, backgroundColor: colors.line, marginHorizontal: 3 },
+  timeCount: { color: colors.muted, fontSize: 11 },
+  doseGroup: { backgroundColor: colors.surface, borderRadius: 16, overflow: 'hidden' },
+  doseDivider: { borderTopColor: colors.line, borderTopWidth: StyleSheet.hairlineWidth, marginHorizontal: 0 },
+  empty: { padding: 22, gap: 8, backgroundColor: colors.surface, borderRadius: 16 },
+  emptyTitle: { color: colors.ink, fontSize: 16, fontWeight: '600', lineHeight: 24 },
+  emptyBody: { color: colors.muted, fontSize: 13, lineHeight: 22 },
+  feedback: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 20 },
   feedbackText: { color: colors.muted, fontSize: 12 },
-  history: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 3 },
-  historyText: { color: colors.active, fontSize: 13, fontWeight: '800' },
-  error: { backgroundColor: colors.dangerSoft, padding: 15, marginBottom: 20, borderRadius: 14 },
+  history: { minHeight: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, borderRadius: 14, backgroundColor: colors.surface },
+  historyText: { color: colors.inkSoft, fontSize: 14, fontWeight: '500' },
+  error: { backgroundColor: colors.dangerSoft, padding: 16, marginBottom: 20, borderRadius: 12 },
   errorText: { color: colors.ink, fontSize: 13, lineHeight: 20 },
-  retry: { minHeight: 40, justifyContent: 'center', alignSelf: 'flex-start' },
+  retry: { minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' },
   link: { color: colors.active, fontSize: 13, textDecorationLine: 'underline' },
 });

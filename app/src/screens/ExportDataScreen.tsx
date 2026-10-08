@@ -136,7 +136,6 @@ export default function ExportDataScreen({}: Props) {
       <View style={[styles.rail, { maxWidth: contentRailWidth(width) }]}>
         <View style={styles.header}>
           <View style={styles.headerCopy}>
-            <Text style={styles.kicker}>DATA EXPORT</Text>
             <Text style={styles.title}>내보내기</Text>
             <Text style={styles.subtitle}>
               보관함의 영양제와 기간별 복용 기록을 엑셀에서 열 수 있는 CSV 파일로 저장해요.
@@ -179,7 +178,6 @@ export default function ExportDataScreen({}: Props) {
         <RitualSurface style={styles.summaryCard} variant="active">
           <View style={styles.summaryHeading}>
             <View>
-              <Text style={styles.summaryKicker}>EXPORT PREVIEW</Text>
               <Text style={styles.summaryTitle}>파일에 담길 데이터</Text>
             </View>
             <View style={styles.fileIcon}>
@@ -217,7 +215,6 @@ export default function ExportDataScreen({}: Props) {
         {!isLoading && data ? (
           <>
             <View style={styles.section}>
-              <Text style={styles.sectionKicker}>FILES</Text>
               <Text style={styles.sectionTitle}>저장되는 파일</Text>
               <View style={styles.fileList}>
                 <ExportFileCard
@@ -290,48 +287,48 @@ const styles = StyleSheet.create({
   rail: { alignSelf: 'center', gap: spacing.xl, width: '100%' },
   header: { alignItems: 'flex-start', flexDirection: 'row', gap: spacing.md },
   headerCopy: { flex: 1, gap: spacing.xs },
-  kicker: { color: colors.active, fontSize: 11, fontWeight: '900', letterSpacing: 2.2 },
+  kicker: { color: colors.active, fontSize: 11, fontWeight: '700', letterSpacing: 2.2 },
   title: { ...type.hero, fontSize: 30, lineHeight: 38 },
   subtitle: { ...type.body, color: colors.inkSoft },
   headerIcon: { alignItems: 'center', backgroundColor: colors.primary, borderRadius: radius.lg, height: 50, justifyContent: 'center', width: 50 },
   rangeRow: { alignItems: 'center', flexDirection: 'row', gap: spacing.sm },
   rangeButton: { alignItems: 'center', backgroundColor: colors.surfaceMuted, borderColor: colors.line, borderRadius: 999, borderWidth: 1, minHeight: 42, minWidth: 70, paddingHorizontal: spacing.md, justifyContent: 'center' },
   rangeButtonSelected: { backgroundColor: colors.activeSoft, borderColor: colors.active },
-  rangeText: { color: colors.muted, fontSize: 13, fontWeight: '900' },
+  rangeText: { color: colors.muted, fontSize: 13, fontWeight: '700' },
   rangeTextSelected: { color: colors.active },
   refreshButton: { alignItems: 'center', backgroundColor: colors.activeSoft, borderRadius: radius.md, height: 42, justifyContent: 'center', marginLeft: 'auto', width: 42 },
   summaryCard: { gap: spacing.lg },
   summaryHeading: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
-  summaryKicker: { color: colors.active, fontSize: 10, fontWeight: '900', letterSpacing: 1.5 },
-  summaryTitle: { color: colors.ink, fontSize: 17, fontWeight: '900', marginTop: spacing.xs },
+  summaryKicker: { color: colors.active, fontSize: 10, fontWeight: '700', letterSpacing: 1.5 },
+  summaryTitle: { color: colors.ink, fontSize: 17, fontWeight: '700', marginTop: spacing.xs },
   fileIcon: { alignItems: 'center', backgroundColor: colors.primary, borderRadius: radius.md, height: 46, justifyContent: 'center', width: 46 },
   statsGrid: { borderTopColor: colors.line, borderTopWidth: 1, flexDirection: 'row', gap: spacing.sm, paddingTop: spacing.md },
   stat: { backgroundColor: colors.surfaceMuted, borderRadius: radius.md, flex: 1, padding: spacing.md },
   statValueRow: { alignItems: 'baseline', flexDirection: 'row' },
-  statValue: { color: colors.ink, fontSize: 22, fontWeight: '900' },
-  statSuffix: { color: colors.muted, fontSize: 11, fontWeight: '900', marginLeft: 2 },
-  statLabel: { color: colors.muted, fontSize: 11, fontWeight: '800', marginTop: spacing.xs },
-  rangeLabel: { color: colors.active, fontSize: 12, fontWeight: '900' },
+  statValue: { color: colors.ink, fontSize: 22, fontWeight: '700' },
+  statSuffix: { color: colors.muted, fontSize: 11, fontWeight: '700', marginLeft: 2 },
+  statLabel: { color: colors.muted, fontSize: 11, fontWeight: '600', marginTop: spacing.xs },
+  rangeLabel: { color: colors.active, fontSize: 12, fontWeight: '700' },
   error: { color: colors.danger, fontSize: 13, lineHeight: 20 },
   successCard: { backgroundColor: colors.completedSoft, borderColor: colors.completed, gap: spacing.sm },
   successHeading: { alignItems: 'center', flexDirection: 'row', gap: spacing.sm },
-  successTitle: { color: colors.completed, fontSize: 16, fontWeight: '900' },
+  successTitle: { color: colors.completed, fontSize: 16, fontWeight: '700' },
   successText: { color: colors.inkSoft, fontSize: 12, lineHeight: 19 },
   loadingRow: { alignItems: 'center', flexDirection: 'row', gap: spacing.sm, justifyContent: 'center', minHeight: 110 },
   loadingText: { ...type.meta },
   section: { gap: spacing.sm },
-  sectionKicker: { color: colors.active, fontSize: 10, fontWeight: '900', letterSpacing: 1.5 },
+  sectionKicker: { color: colors.active, fontSize: 10, fontWeight: '700', letterSpacing: 1.5 },
   sectionTitle: { ...type.section },
   fileList: { gap: spacing.md, marginTop: spacing.xs },
   fileCard: { alignItems: 'center', flexDirection: 'row', gap: spacing.md },
   fileCardIcon: { alignItems: 'center', backgroundColor: colors.activeSoft, borderRadius: radius.md, height: 48, justifyContent: 'center', width: 48 },
   fileCardCopy: { flex: 1, gap: 3 },
-  fileCardTitle: { color: colors.ink, fontSize: 15, fontWeight: '900' },
+  fileCardTitle: { color: colors.ink, fontSize: 15, fontWeight: '700' },
   fileCardBody: { color: colors.muted, fontSize: 12, lineHeight: 18 },
   privacyCard: { backgroundColor: colors.warningSoft, borderColor: colors.warning, gap: spacing.sm },
   privacyHeading: { alignItems: 'center', flexDirection: 'row', gap: spacing.sm },
-  privacyTitle: { color: colors.warning, fontSize: 15, fontWeight: '900' },
+  privacyTitle: { color: colors.warning, fontSize: 15, fontWeight: '700' },
   privacyBody: { ...type.body, color: colors.inkSoft },
-  accountText: { color: colors.muted, fontSize: 11, fontWeight: '800' },
+  accountText: { color: colors.muted, fontSize: 11, fontWeight: '600' },
   pressed: { opacity: 0.74 },
 });
