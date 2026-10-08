@@ -8,6 +8,9 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.TreeSet;
+import java.util.stream.Collectors;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import org.springframework.http.HttpStatus;
@@ -59,6 +62,35 @@ public class WebPushStore {
         for (var time : existing) if (!times.contains(time)) db.update("DELETE FROM web_push_reminder WHERE subscription_id=? AND supplement_id=? AND dose_time=?",id,supplementId,time);
         for (var time : times) if (!existing.contains(time)) db.update("INSERT INTO web_push_reminder (subscription_id,supplement_id,dose_time,created_at) VALUES (?,?,?,?)",id,supplementId,time,utc(now));
     }
+    public void rescheduleProductReminders(long supplementId, List<String> previousTimes, List<String> nextTimes, Instant now) {
+        var reservations = db.query("""
+            SELECT subscription_id,dose_time FROM web_push_reminder
+            WHERE supplement_id=? ORDER BY subscription_id,dose_time FOR UPDATE
+            """, (rs,n) -> new Reservation(rs.getString(1),rs.getString(2)), supplementId);
+        var byDevice = reservations.stream().collect(Collectors.groupingBy(
+            Reservation::subscriptionId, LinkedHashMap::new,
+            Collectors.mapping(Reservation::time, Collectors.toList())));
+        var removed = previousTimes.stream().filter(time -> !nextTimes.contains(time)).sorted().toList();
+        var added = nextTimes.stream().filter(time -> !previousTimes.contains(time)).sorted().toList();
+        for (var device : byDevice.entrySet()) {
+            var existing = device.getValue();
+            var selected = existing.stream().filter(nextTimes::contains)
+                .collect(Collectors.toCollection(TreeSet::new));
+            // Match unchanged times first; only carry enabled replaced slots to new times.
+            for (int index = 0; index < Math.min(removed.size(), added.size()); index++) {
+                if (existing.contains(removed.get(index))) selected.add(added.get(index));
+            }
+            // Recover reservations stranded by the old editor when this product is saved again.
+            var strandedCount = existing.stream()
+                .filter(time -> !previousTimes.contains(time) && !nextTimes.contains(time)).count();
+            selected.addAll(added.stream().filter(time -> !selected.contains(time)).limit(strandedCount).toList());
+            if (strandedCount > 0 && previousTimes.equals(nextTimes) && nextTimes.size() == 1) {
+                selected.add(nextTimes.getFirst());
+            }
+            setReminders(device.getKey(), supplementId, List.copyOf(selected), now);
+        }
+    }
+    private record Reservation(String subscriptionId, String time) {}
     public void remove(String id) { db.update("DELETE FROM web_push_subscription WHERE id=?",id); }
     public void disable(String id) { db.update("UPDATE web_push_subscription SET enabled=FALSE WHERE id=?",id); }
     public List<Long> activeReminderIds(Instant now) {

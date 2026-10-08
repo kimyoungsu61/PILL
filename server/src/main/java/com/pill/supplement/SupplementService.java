@@ -1,5 +1,7 @@
 package com.pill.supplement;
 
+import com.pill.notification.WebPushService;
+import com.pill.notification.WebPushStore;
 import com.pill.model.DoseLog;
 import com.pill.model.DoseSchedule;
 import com.pill.model.SupplementScan;
@@ -39,6 +41,7 @@ public class SupplementService {
     private final DoseLogRepository doseLogs;
     private final DoseScheduleRepository doseSchedules;
     private final SupplementWarningRepository supplementWarnings;
+    private final WebPushStore webPushStore;
     private final Clock clock;
 
     public SupplementService(
@@ -48,6 +51,7 @@ public class SupplementService {
         DoseLogRepository doseLogs,
         DoseScheduleRepository doseSchedules,
         SupplementWarningRepository supplementWarnings,
+        WebPushStore webPushStore,
         Clock clock
     ) {
         this.supplements = supplements;
@@ -56,6 +60,7 @@ public class SupplementService {
         this.doseLogs = doseLogs;
         this.doseSchedules = doseSchedules;
         this.supplementWarnings = supplementWarnings;
+        this.webPushStore = webPushStore;
         this.clock = clock;
     }
 
@@ -285,11 +290,13 @@ public class SupplementService {
     public void updateDoseTimes(Long userId, Long supplementId, UpdateDoseTimesRequest request) {
         var times = normalizeRequestedDoseTimes(request);
         var supplement = findUserSupplement(userId, supplementId);
+        var previousTimes = WebPushService.times(supplement.getConfirmedDoseTime());
         supplement.updateConfirmedDoseTime(String.join(",", times));
         doseSchedules.deleteBySupplementId(supplement.getId());
         for (var time : times) {
             doseSchedules.save(new DoseSchedule(supplement, time, time));
         }
+        webPushStore.rescheduleProductReminders(supplement.getId(), previousTimes, times, clock.instant());
     }
 
     @Transactional
