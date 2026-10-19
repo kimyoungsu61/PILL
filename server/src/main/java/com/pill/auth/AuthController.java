@@ -4,55 +4,77 @@ import com.pill.auth.dto.AuthRequest;
 import com.pill.auth.dto.AuthResponse;
 import com.pill.auth.dto.MeResponse;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+import java.time.Clock;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
     private final AuthService authService;
     private final AuthAttemptLimiter attempts;
+    private final AuthSessionService sessions;
+    private final Clock clock;
 
-    public AuthController(AuthService authService, AuthAttemptLimiter attempts) {
+    public AuthController(AuthService authService, AuthAttemptLimiter attempts, AuthSessionService sessions, Clock clock) {
         this.authService = authService;
         this.attempts = attempts;
+        this.sessions = sessions;
+        this.clock = clock;
     }
 
     @PostMapping("/signup")
-    public AuthResponse signup(@Valid @RequestBody AuthRequest request, HttpServletRequest servletRequest) {
+    public AuthResponse signup(@Valid @RequestBody AuthRequest request, HttpServletRequest servletRequest,
+                               HttpServletResponse servletResponse) {
         attempts.consumeSignup(servletRequest.getRemoteAddr());
-        return authService.signup(request.email(), request.password());
+        return finishAuth(authService.signup(request.email(), request.password()), servletRequest, servletResponse);
     }
 
     @PostMapping("/login")
-    public AuthResponse login(@Valid @RequestBody AuthRequest request, HttpServletRequest servletRequest) {
+    public AuthResponse login(@Valid @RequestBody AuthRequest request, HttpServletRequest servletRequest,
+                              HttpServletResponse servletResponse) {
         var clientAddress = servletRequest.getRemoteAddr();
         attempts.checkLogin(clientAddress, request.email());
         try {
             var response = authService.login(request.email(), request.password());
             attempts.resetLoginFailures(clientAddress, request.email());
-            return response;
-        } catch (InvalidCredentialsException ex) {
+            return finishAuth(response, servletRequest, servletResponse);
+        } catch (InvalidCredentialsException exception) {
             attempts.recordLoginFailure(clientAddress, request.email());
-            throw ex;
+            throw exception;
         }
+    }
+
+    private AuthResponse finishAuth(AuthResponse response, HttpServletRequest request, HttpServletResponse servletResponse) {
+        if (!BrowserSession.requested(request)) return response;
+        var previous = BrowserSession.cookieToken(request);
+        if (previous != null) {
+            try { sessions.revoke(sessions.authenticate(previous).sessionId()); }
+            catch (InvalidSessionException ignored) { /* An expired cookie must not prevent signing in. */ }
+        }
+        var principal = sessions.authenticate(response.token());
+        BrowserSession.write(servletResponse, response.token(), sessions.remember(principal.sessionId()), clock.instant());
+        return new AuthResponse(BrowserSession.MARKER, response.email());
     }
 
     @PostMapping("/logout")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void logout(@AuthenticationPrincipal SessionPrincipal principal) {
+    public void logout(@AuthenticationPrincipal SessionPrincipal principal, HttpServletResponse response) {
         authService.logout(principal.sessionId());
+        BrowserSession.clear(response);
     }
 
     @GetMapping("/me")
-    public MeResponse me(@CurrentUser Long userId) {
-        return new MeResponse(authService.email(userId));
+    public MeResponse me(@AuthenticationPrincipal SessionPrincipal principal, HttpServletRequest request,
+                         HttpServletResponse response) {
+        if (BrowserSession.requested(request)) {
+            // Upgrade an existing active login without replacing the session used by web reminders.
+            BrowserSession.write(response, BrowserSession.presentedToken(request),
+                sessions.remember(principal.sessionId()), clock.instant());
+        }
+        return new MeResponse(authService.email(principal.userId()));
     }
 }

@@ -51,6 +51,10 @@ public class AuthSession {
         }
     }
 
+    public void extendUntil(Instant expiresAt) {
+        if (expiresAt.isAfter(this.expiresAt)) this.expiresAt = expiresAt;
+    }
+
     public Long getId() {
         return id;
     }

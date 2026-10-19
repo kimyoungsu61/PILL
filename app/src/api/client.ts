@@ -1,4 +1,5 @@
 import { DESIGN_PREVIEW_TOKEN } from '../auth/designPreview';
+import { BROWSER_CLIENT_HEADER, BROWSER_SESSION_TOKEN } from '../auth/browserSession';
 import type { ApiError, HomeResponse } from './types';
 
 type DevelopmentRuntime = 'native' | 'web';
@@ -17,6 +18,7 @@ const isDevelopment = typeof __DEV__ === 'boolean'
   : process.env.NODE_ENV !== 'production';
 
 type UnauthorizedHandler = () => void | Promise<void>;
+export type ApiRequestOptions = RequestInit & { skipAuthReset?: boolean };
 
 export const DEFAULT_API_TIMEOUT_MS = 20_000;
 
@@ -106,7 +108,7 @@ export function readableErrorMessage(body: string, fallback: string) {
 
 export async function apiFetch(
   path: string,
-  options: RequestInit = {},
+  options: ApiRequestOptions = {},
   token?: string,
   timeoutMs = DEFAULT_API_TIMEOUT_MS,
 ) {
@@ -117,9 +119,12 @@ export async function apiFetch(
   if (options.body && !headers.has('Content-Type') && !isFormData(options.body)) {
     headers.set('Content-Type', 'application/json');
   }
-  if (token) {
+  if (token && token !== BROWSER_SESSION_TOKEN) {
     headers.set('Authorization', `Bearer ${token}`);
   }
+  const browserRequest = typeof document !== 'undefined' || token === BROWSER_SESSION_TOKEN;
+  if (browserRequest) headers.set(BROWSER_CLIENT_HEADER, 'web');
+  const { skipAuthReset, ...fetchOptions } = options;
 
   const timeoutController = new AbortController();
   const callerSignal = options.signal;
@@ -138,7 +143,8 @@ export async function apiFetch(
   let response: Response;
   try {
     response = await fetch(`${API_BASE_URL}${path}`, {
-      ...options,
+      ...fetchOptions,
+      credentials: browserRequest ? 'include' : fetchOptions.credentials,
       headers,
       signal: timeoutController.signal,
     });
@@ -153,13 +159,13 @@ export async function apiFetch(
   }
 
   if (token && response.status === 401) {
-    await notifyUnauthorized();
+    if (!skipAuthReset) await notifyUnauthorized();
     throw new UnauthorizedError();
   }
   return response;
 }
 
-export async function apiRequest<T>(path: string, options: RequestInit = {}, token?: string, timeoutMs = DEFAULT_API_TIMEOUT_MS): Promise<T> {
+export async function apiRequest<T>(path: string, options: ApiRequestOptions = {}, token?: string, timeoutMs = DEFAULT_API_TIMEOUT_MS): Promise<T> {
   if (token === DESIGN_PREVIEW_TOKEN
     && path === '/api/home'
     && (!options.method || options.method.toUpperCase() === 'GET')) {

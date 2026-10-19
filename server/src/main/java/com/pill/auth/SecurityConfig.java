@@ -34,6 +34,7 @@ public class SecurityConfig {
         JsonAuthenticationEntryPoint authenticationEntryPoint
     ) throws Exception {
         return http
+            // Cookie mutations are guarded by the same-origin header check in SessionAuthenticationFilter.
             .csrf(AbstractHttpConfigurer::disable)
             .cors(AbstractHttpConfigurer::disable)
             .httpBasic(AbstractHttpConfigurer::disable)
