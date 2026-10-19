@@ -1,6 +1,7 @@
 package com.pill.notification;
 
 import com.pill.auth.AuthSessionService;
+import com.pill.auth.BrowserSession;
 import com.pill.auth.SessionPrincipal;
 import com.pill.model.User;
 import com.pill.model.SupplementScan;
@@ -179,6 +180,21 @@ class WebPushIntegrationTest {
         var state=service.connect(principal,"https://web.push.apple.com/utc",key,auth,"UTC");service.setTimes(principal,state.id(),product.getId(),List.of("09:00"));
         when(clock.instant()).thenReturn(Instant.parse("2026-10-07T00:00:10Z"));for(var id:store.activeReminderIds(clock.instant()))dispatcher.dispatch(id);verify(sender,never()).send(any(),any());
         when(clock.instant()).thenReturn(Instant.parse("2026-10-07T09:00:10Z"));for(var id:store.activeReminderIds(clock.instant()))dispatcher.dispatch(id);verify(sender,times(1)).send(any(),any());
+    }
+    @Test void rememberedBrowserKeepsItsPushSessionForSixMonthsAndLogoutStillStopsIt() throws Exception {
+        var state=connect("remembered-browser");
+        service.setTimes(principal,state.id(),product.getId(),List.of("09:00"));
+        var original=store.activeReminderIds(clock.instant());
+        var migrated=mvc.perform(get("/api/auth/me").header("Authorization","Bearer "+token)
+            .header(BrowserSession.CLIENT_HEADER,"web")).andExpect(status().isOk()).andReturn();
+        assertThat(migrated.getResponse().getHeader("Set-Cookie")).contains("HttpOnly");
+        assertThat(sessions.authenticate(token).sessionId()).isEqualTo(principal.sessionId());
+        when(clock.instant()).thenReturn(Instant.parse("2027-01-14T23:59:00Z"));
+        assertThat(store.activeReminderIds(clock.instant())).containsExactlyElementsOf(original);
+        mvc.perform(post("/api/auth/logout").cookie(new jakarta.servlet.http.Cookie(BrowserSession.COOKIE,token))
+            .header(BrowserSession.CLIENT_HEADER,"web")).andExpect(status().isNoContent());
+        entityManager.flush();
+        assertThat(store.activeReminderIds(clock.instant())).isEmpty();
     }
     private WebPushService.State connect(String suffix) throws Exception { return service.connect(principal,"https://web.push.apple.com/"+suffix,key,auth,"Asia/Seoul"); }
     private UserSupplement product(User owner,String times) {

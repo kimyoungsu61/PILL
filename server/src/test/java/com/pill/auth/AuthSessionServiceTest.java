@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @DataJpaTest(properties = "spring.jpa.hibernate.ddl-auto=create-drop")
 class AuthSessionServiceTest {
     private static final Instant NOW = Instant.parse("2026-07-10T00:00:00Z");
-    private static final Duration SESSION_TTL = Duration.ofDays(30);
+    private static final Duration SESSION_TTL = Duration.ofDays(180);
 
     @Autowired AuthSessionRepository sessions;
     @Autowired UserRepository users;

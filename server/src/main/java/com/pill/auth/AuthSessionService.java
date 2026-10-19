@@ -22,7 +22,7 @@ public class AuthSessionService {
         AuthSessionRepository sessions,
         SessionTokenService tokens,
         Clock clock,
-        @Value("${pill.auth.session-ttl:PT720H}") Duration sessionTtl
+        @Value("${pill.auth.session-ttl:P180D}") Duration sessionTtl
     ) {
         if (sessionTtl == null || sessionTtl.isZero() || sessionTtl.isNegative()) {
             throw new IllegalArgumentException("session ttl must be positive");
@@ -54,6 +54,17 @@ public class AuthSessionService {
             )
             .orElseThrow(InvalidSessionException::new);
         return new SessionPrincipal(session.getUser().getId(), session.getId());
+    }
+
+    @Transactional
+    public Instant remember(Long sessionId) {
+        var session = sessions.findById(sessionId).orElseThrow(InvalidSessionException::new);
+        var now = clock.instant();
+        if (session.getRevokedAt() != null || !session.getExpiresAt().isAfter(now)) {
+            throw new InvalidSessionException();
+        }
+        session.extendUntil(session.getCreatedAt().plus(sessionTtl));
+        return session.getExpiresAt();
     }
 
     @Transactional
