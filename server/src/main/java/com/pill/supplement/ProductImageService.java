@@ -16,6 +16,8 @@ import java.util.HashSet;
 
 @Service
 public class ProductImageService {
+    private static final int LOOKUP_VERSION = 2;
+    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(ProductImageService.class);
     private static final ObjectMapper JSON = new ObjectMapper();
     private final UserSupplementRepository supplements;
     private final GeminiClient gemini;
@@ -40,7 +42,8 @@ public class ProductImageService {
             .orElseThrow(() -> new IllegalArgumentException("supplement not found"));
         var stored = stored(supplement);
         var previous = stored.path("productImage");
-        if (fresh(previous)) return JSON.convertValue(previous, Result.class);
+        if (fresh(previous) && ("FOUND".equals(previous.path("status").asText())
+            || stored.path("productImageLookupVersion").asInt() == LOOKUP_VERSION)) return JSON.convertValue(previous, Result.class);
         limiter.consume("product-image-hour", userId.toString(), 30, Duration.ofHours(1));
         var identity = JSON.createObjectNode();
         identity.put("brandName", supplement.getBrandName());
@@ -55,13 +58,18 @@ public class ProductImageService {
             if (result == null) result = matchedResearchImage(stored.path("guideResearch"), identity, seen);
             if (result == null) {
                 try { result = find(gemini.productImageSources(identity), identity, seen); }
-                catch (RuntimeException exception) { result = empty("UNAVAILABLE"); }
+                catch (RuntimeException exception) {
+                    LOG.warn("Product photo search unavailable supplement={} errorType={}", supplementId, exception.getClass().getSimpleName());
+                    result = empty("UNAVAILABLE");
+                }
             }
             if (result == null) result = empty("NOT_FOUND");
         }
         stored.set("productImage", JSON.valueToTree(result));
+        stored.put("productImageLookupVersion", LOOKUP_VERSION);
         supplement.getScan().updateProductInformation(stored.toString());
         if ("FOUND".equals(result.status())) supplement.updateImageUri(result.imageUri());
+        LOG.info("Product photo lookup supplement={} status={}", supplementId, result.status());
         return result;
     }
 
@@ -75,7 +83,7 @@ public class ProductImageService {
         for (var source : sources) {
             var url = source.path("url").asText(source.path("uri").asText(""));
             if (url.isBlank() || !seen.add(url)) continue;
-            if (inspected++ >= 3) break;
+            if (inspected++ >= 8) break;
             var page = pages.read(url);
             var image = ProductImageMetadata.extract(page, identity.path("brandName").asText(),
                 identity.path("productName").asText(), identity.path("originalLabelText").asText(""));
@@ -87,7 +95,7 @@ public class ProductImageService {
     private boolean fresh(JsonNode image) {
         try {
             if ("FOUND".equals(image.path("status").asText())) return ProductImagePageClient.imageUrl(image.path("imageUri").asText());
-            var age = "UNAVAILABLE".equals(image.path("status").asText()) ? Duration.ofHours(1) : Duration.ofDays(7);
+            var age = "UNAVAILABLE".equals(image.path("status").asText()) ? Duration.ofMinutes(1) : Duration.ofMinutes(5);
             return Instant.parse(image.path("checkedAt").asText()).plus(age).isAfter(clock.instant());
         } catch (Exception ignored) { return false; }
     }

@@ -6,6 +6,21 @@ import static org.assertj.core.api.Assertions.assertThat;
 class ProductImageMetadataTest {
     private static final String URL = "https://www.doctorsbest.com/products/high-absorption-magnesium";
 
+    @Test void acceptsTheExistingFullLabelNameWhenTheManufacturerHeadingUsesAShortName() {
+        var url = "https://doctorsbest.com/products/doctor-s-best-high-absorption-magnesium-lysinate-glycinate-chelated-albion-traacs-120-tablets-100-mg-per-tablet-15";
+        var html = """
+            <script type="application/ld+json">{"@type":"Product","name":"Doctor's Best High Absorption Magnesium, 100 mg, 120 Tablets",
+              "image":"https://cdn.shopify.com/real-magnesium-120.jpg"}</script>
+            """;
+        var page = new ProductImagePageClient.Page(url, html);
+        assertThat(ProductImageMetadata.extract(page, "Doctor's Best", "High Absorption Magnesium Lysinate Glycinate 100% Chelated", "100 mg 120 Tablets"))
+            .isEqualTo("https://cdn.shopify.com/real-magnesium-120.jpg");
+        assertThat(ProductImageMetadata.extract(page, "Doctor's Best", "High Absorption Magnesium Lysinate Glycinate 100% Chelated", "100 mg 240 Tablets")).isEmpty();
+        assertThat(ProductImageMetadata.extract(page, "Doctor's Best", "Vitamin C", "120 tablets")).isEmpty();
+        assertThat(ProductImageMetadata.extract(new ProductImagePageClient.Page(url, html.replace("120 Tablets", "240 Tablets")),
+            "Doctor's Best", "High Absorption Magnesium Lysinate Glycinate 100% Chelated", "100 mg 120 Tablets")).isEmpty();
+    }
+
     @Test void readsActualProductImageFromJsonLdRatherThanTheOrganizationLogoOrRelatedProduct() {
         var html = """
             <script type="application/ld+json">{"@graph":[

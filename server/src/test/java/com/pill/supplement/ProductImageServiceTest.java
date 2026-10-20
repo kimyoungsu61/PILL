@@ -66,4 +66,23 @@ class ProductImageServiceTest {
         assertThatThrownBy(() -> service.resolve(2L, 7L)).isInstanceOf(IllegalArgumentException.class);
         verifyNoInteractions(gemini, pages, limiter);
     }
+
+    @Test void retriesOldFailedLookupsAndInspectsUsefulSourcesAfterTheFirstThree() throws Exception {
+        var supplement = product("""
+            {"productImage":{"status":"NOT_FOUND","imageUri":"","sourceUrl":"","checkedAt":"2026-10-20T02:00:00Z"},
+             "research":{"status":"CANDIDATE","sources":[{"url":"https://doctorsbest.com/products/missing-1"},
+               {"url":"https://doctorsbest.com/products/missing-2"},{"url":"https://doctorsbest.com/products/missing-3"},
+               {"url":"https://doctorsbest.com/products/magnesium-240-tablets"}]}}
+            """);
+        when(pages.read("https://doctorsbest.com/products/magnesium-240-tablets"))
+            .thenReturn(new ProductImagePageClient.Page("https://doctorsbest.com/products/magnesium-240-tablets", """
+                <meta property="og:title" content="Doctor's Best High Absorption Magnesium 240 Tablets">
+                <meta property="og:image" content="https://cdn.shopify.com/magnesium-240.jpg">
+                """));
+        assertThat(service.resolve(1L, 7L).status()).isEqualTo("FOUND");
+        assertThat(json.readTree(supplement.getScan().getNormalizedAiResultJson()).path("productImageLookupVersion").asInt()).isEqualTo(2);
+        assertThat(service.resolve(1L, 7L).imageUri()).isEqualTo("https://cdn.shopify.com/magnesium-240.jpg");
+        verifyNoInteractions(gemini);
+        verify(pages, times(4)).read(anyString());
+    }
 }
