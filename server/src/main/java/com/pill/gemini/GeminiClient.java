@@ -185,9 +185,9 @@ public class GeminiClient {
             Product identity:
             """ + identity)))), "tools", List.of(Map.of("google_search", Map.of()))));
         var sources = mapper.createArrayNode();
-        if (!extractText(response).stripLeading().matches("(?s)^(?:\\*\\*)?MATCHED\\b.*")) return sources;
         var metadata = parseObject(response).path("candidates").path(0).path("groundingMetadata");
-        if (metadata.path("groundingSupports").isEmpty()) return sources;
+        // Photo identity is checked against the actual product page, not the model's
+        // prose prefix or text citation offsets. Keep provider-supplied search links.
         for (var chunk : metadata.path("groundingChunks")) {
             var web = chunk.path("web");
             if (safeSource(web.path("uri").asText("")) && sources.size() < 8) sources.add(web);

@@ -92,7 +92,7 @@ class ProductImageServiceTest {
                 <meta property="og:image" content="https://cdn.shopify.com/magnesium-240.jpg">
                 """));
         assertThat(service.resolve(1L, 7L).status()).isEqualTo("FOUND");
-        assertThat(json.readTree(supplement.getScan().getNormalizedAiResultJson()).path("productImageLookupVersion").asInt()).isEqualTo(3);
+        assertThat(json.readTree(supplement.getScan().getNormalizedAiResultJson()).path("productImageLookupVersion").asInt()).isEqualTo(4);
         assertThat(service.resolve(1L, 7L).imageUri()).isEqualTo("https://cdn.shopify.com/magnesium-240.jpg");
         verifyNoInteractions(gemini);
         verify(pages, times(4)).read(anyString());
