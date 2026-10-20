@@ -92,7 +92,7 @@ export default function SupplementsScreen() {
                   onPress={() => navigation.navigate('SupplementDetail', { supplementId: supplement.id })}
                   style={({ pressed }) => [styles.card, index > 0 && styles.cardDivider, pressed && styles.pressed]}>
                   <View style={styles.productRow}>
-                    <SupplementThumb imageUri={supplement.imageUri} name={displayName} size={64} />
+                    <SupplementThumb supplementId={supplement.id} imageUri={supplement.imageUri} name={displayName} size={64} />
                     <View style={styles.productCopy}>
                       <Text numberOfLines={1} style={styles.brand}>{supplement.brandName || '브랜드 정보 없음'}</Text>
                       <Text numberOfLines={2} style={styles.productName}>{displayName}</Text>

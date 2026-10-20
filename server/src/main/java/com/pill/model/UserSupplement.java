@@ -179,6 +179,10 @@ public class UserSupplement {
         return imageUri;
     }
 
+    public void updateImageUri(String imageUri) {
+        this.imageUri = imageUri;
+    }
+
     public String getSuggestedUseKo() {
         return suggestedUseKo;
     }

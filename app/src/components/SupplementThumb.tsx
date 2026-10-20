@@ -1,8 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
+import { loadProductImage } from '../api/productImages';
+import { useAuth } from '../auth/AuthContext';
+import { DESIGN_PREVIEW_TOKEN } from '../auth/designPreview';
 import { colors, radius, supplementInitial } from '../theme';
 
 type Props = {
+  supplementId?: number;
   imageUri?: string;
   name?: string;
   size?: number;
@@ -16,9 +20,24 @@ const toneColors = {
   amber: { background: colors.completedSoft, text: colors.completed },
 };
 
-export default function SupplementThumb({ imageUri, name, size = 52, muted = false, tone = 'blue' }: Props) {
+export default function SupplementThumb({ supplementId, imageUri, name, size = 52, muted = false, tone = 'blue' }: Props) {
+  const { token, email } = useAuth();
+  const account = email || '';
+  const [resolved, setResolved] = useState<{ id: number; account: string; uri: string } | null>(null);
+  const savedUri = imageUri?.startsWith('https://') ? imageUri : undefined;
+  const representativeUri = resolved && resolved.id === supplementId && resolved.account === account ? resolved.uri : savedUri;
   const [failedUri, setFailedUri] = useState<string | null>(null);
-  const showImage = Boolean(imageUri && failedUri !== imageUri);
+  const showImage = Boolean(representativeUri && failedUri !== representativeUri);
+  useEffect(() => {
+    if (!supplementId || !token || token === DESIGN_PREVIEW_TOKEN || savedUri) return;
+    let current = true;
+    void loadProductImage(account, supplementId, token).then(result => {
+      if (current && result.status === 'FOUND' && result.imageUri.startsWith('https://')) {
+        setResolved({ id: supplementId, account, uri: result.imageUri });
+      }
+    }).catch(() => { /* Keep the neutral initial when a product photo is unavailable. */ });
+    return () => { current = false; };
+  }, [account, savedUri, supplementId, token]);
   const palette = toneColors[tone];
   const frameStyle = {
     borderRadius: radius.md,
@@ -37,7 +56,8 @@ export default function SupplementThumb({ imageUri, name, size = 52, muted = fal
       ]}
     >
       {showImage ? (
-        <Image onError={() => setFailedUri(imageUri ?? null)} source={{ uri: imageUri }} style={styles.image} />
+        <Image accessibilityLabel={`${name || '영양제'} 제품 대표사진`} resizeMode="contain"
+          onError={() => setFailedUri(representativeUri ?? null)} source={{ uri: representativeUri }} style={styles.image} />
       ) : (
         <Text style={[styles.initial, { color: muted ? colors.muted : palette.text, fontSize: Math.max(18, size * 0.36) }]}>
           {supplementInitial(name)}
@@ -56,9 +76,9 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   image: {
-    backgroundColor: colors.surfaceMuted,
-    height: '100%',
-    width: '100%',
+    backgroundColor: colors.surface,
+    height: '88%',
+    width: '88%',
   },
   muted: {
     opacity: 0.68,

@@ -183,7 +183,8 @@ class SupplementServiceTest {
         var detail = supplements.detail(user.getId(), supplementId);
         assertThat(detail.brandName()).isEqualTo("Manual Labs");
         assertThat(detail.productName()).isEqualTo("Manual Probiotic");
-        assertThat(detail.imageUri()).isEqualTo("file:///front-label.jpg");
+        // Local camera paths cannot be representative product photos on another device.
+        assertThat(detail.imageUri()).isEmpty();
         assertThat(detail.suggestedUseKo()).isEqualTo("하루 1캡슐");
         assertThat(detail.confirmedDoseTime()).isEqualTo("08:00,20:00");
         assertThat(doseSchedules.findBySupplementIdOrderByConfirmedTimeAsc(supplementId))

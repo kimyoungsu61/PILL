@@ -290,7 +290,7 @@ function ScanHistoryCard({
       style={({ pressed }) => [styles.historyCard, pressed && styles.pressed]}
     >
       <View style={styles.cardTop}>
-        <SupplementThumb imageUri={entry.imageUri} name={name} size={58} muted={status.tone === 'FAILED'} />
+        <SupplementThumb supplementId={entry.supplementId} imageUri={entry.imageUri} name={name} size={58} muted={status.tone === 'FAILED'} />
         <View style={styles.cardCopy}>
           <View style={[styles.statusBadge, badgeStyle]}>
             <Text style={[styles.statusText, badgeTextStyle]}>{status.label}</Text>

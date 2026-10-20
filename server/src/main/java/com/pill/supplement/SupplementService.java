@@ -83,7 +83,7 @@ public class SupplementService {
                         supplement.getId(),
                         supplement.getProductName(),
                         displayNameKo(supplement),
-                        supplement.getImageUri(),
+                        ProductImageService.displayImage(supplement),
                         doseTime,
                         statusFor(logs, doseTime)
                     ));
@@ -128,7 +128,7 @@ public class SupplementService {
                             supplement.getId(),
                             supplement.getProductName(),
                             displayNameKo(supplement),
-                            supplement.getImageUri(),
+                            ProductImageService.displayImage(supplement),
                             date,
                             doseTime,
                             "MISSED",
@@ -212,7 +212,7 @@ public class SupplementService {
             supplement.getBrandName(),
             supplement.getProductName(),
             displayNameKo(supplement),
-            supplement.getImageUri(),
+            ProductImageService.displayImage(supplement),
             supplement.getSuggestedUseKo(),
             supplement.getSuggestedUseOriginal(),
             supplement.getSummaryKo(),
@@ -324,7 +324,7 @@ public class SupplementService {
             supplement.getBrandName(),
             supplement.getProductName(),
             displayNameKo(supplement),
-            supplement.getImageUri(),
+            ProductImageService.displayImage(supplement),
             supplement.getWarningSummary()
         );
     }
@@ -410,7 +410,7 @@ public class SupplementService {
             supplement.getId(),
             supplement.getProductName(),
             displayNameKo(supplement),
-            supplement.getImageUri(),
+            ProductImageService.displayImage(supplement),
             log.getDoseDate(),
             log.getDoseTime(),
             log.getStatus(),

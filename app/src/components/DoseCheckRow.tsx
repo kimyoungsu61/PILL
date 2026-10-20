@@ -19,7 +19,7 @@ export default function DoseCheckRow({ disabled = false, dose, onClear, onTaken,
   return (
     <View style={styles.row}>
       {showTime ? <Text style={[styles.time, taken && styles.muted]}>{dose.confirmedTime || '미설정'}</Text> :
-        <SupplementThumb imageUri={dose.imageUri} name={name} size={42} />}
+        <SupplementThumb supplementId={dose.supplementId} imageUri={dose.imageUri} name={name} size={42} />}
       <Pressable accessibilityRole="button" accessibilityLabel={name + ' 상세 정보'} onPress={onOpen} style={styles.identity}>
         <Text style={[styles.name, taken && styles.muted]}>{name}</Text>
         <Text style={styles.status}>{taken ? '복용 완료' : dose.status === 'SKIPPED' ? '건너뜀' : '복용 예정'}</Text>

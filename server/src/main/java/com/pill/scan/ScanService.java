@@ -144,7 +144,7 @@ public class ScanService {
             supplement == null ? normalized.brandName() : text(supplement.getBrandName()),
             supplement == null ? normalized.productName() : text(supplement.getProductName()),
             displayName,
-            supplement == null ? "" : text(supplement.getImageUri()),
+            supplement == null ? "" : com.pill.supplement.ProductImageService.displayImage(supplement),
             supplement != null,
             supplement == null ? null : supplement.getId(),
             normalized.ingredients().size(),
