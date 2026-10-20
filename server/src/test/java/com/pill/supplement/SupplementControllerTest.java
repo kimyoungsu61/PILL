@@ -29,6 +29,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
     "spring.jpa.hibernate.ddl-auto=create-drop"
 })
 @AutoConfigureMockMvc
+@org.springframework.test.context.jdbc.Sql("/db/web_push.sql")
 class SupplementControllerTest {
     @Autowired MockMvc mvc;
     @Autowired AuthSessionService sessions;

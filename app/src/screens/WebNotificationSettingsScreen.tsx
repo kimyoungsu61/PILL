@@ -8,6 +8,8 @@ import type { SupplementDetailResponse, SupplementSummary } from '../api/types';
 import { useAuth } from '../auth/AuthContext';
 import RitualAction from '../components/RitualAction';
 import RitualSurface from '../components/RitualSurface';
+import FollowUpSettingsCard from '../components/FollowUpSettingsCard';
+import { defaultFollowUpSettings, saveFollowUpSettings } from '../notifications/webPush';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 import { parseDoseTimes } from '../notifications/doseReminderNotifications';
 import { connectWebPush, disconnectWebPush, getWebPushConfig, getWebPushState, prepareWebPush, saveWebReminderTimes, sendWebPushTest, webPushError, webPushSupport, type WebPushState, type WebPushConfig, type WebPushPreparation } from '../notifications/webPush';
@@ -84,6 +86,11 @@ export default function WebNotificationSettingsScreen({ navigation }: Props) {
       </RitualSurface> : null}
       {error ? <Text accessibilityLiveRegion="polite" style={styles.error}>{error}</Text> : null}
       {message ? <Text accessibilityLiveRegion="polite" style={styles.message}>{message}</Text> : null}
+      {connected && state ? <FollowUpSettingsCard settings={state.followUp || defaultFollowUpSettings} busy={busy}
+        onSave={settings => void action(async () => {
+          setState(await saveFollowUpSettings(token!, state, settings));
+          setMessage('후속 알림 설정을 저장했어요. 다음 복용 알림부터 적용돼요.');
+        })} /> : null}
       {!loading && !products.length ? <RitualSurface style={styles.card}><Text style={styles.cardTitle}>먼저 영양제를 등록해 주세요</Text><Text style={styles.body}>제품을 등록하고 복용 시간을 저장하면 알림을 설정할 수 있어요.</Text><RitualAction label="내 영양제 보기" onPress={() => navigation.navigate('MainTabs', { screen: 'Supplements' })} /></RitualSurface> : null}
       {products.map(product => <RitualSurface key={product.id} style={styles.card}>
         <Text style={styles.cardTitle}>{product.name}</Text>

@@ -239,6 +239,7 @@ public class SupplementService {
             .orElseGet(() -> new DoseLog(supplement, today, doseTime, request.status(), request.memo()));
         doseLog.update(request.status(), request.memo());
         doseLogs.save(doseLog);
+        webPushStore.cancelFollowUps(supplementId, today, doseTime);
     }
 
     @Transactional

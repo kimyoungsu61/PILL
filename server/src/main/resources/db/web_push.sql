@@ -33,3 +33,26 @@ CREATE TABLE IF NOT EXISTS web_push_delivery (
  UNIQUE (reminder_id, dose_date),
  FOREIGN KEY (reminder_id) REFERENCES web_push_reminder(id) ON DELETE CASCADE
 );
+CREATE TABLE IF NOT EXISTS web_push_follow_up_settings (
+ subscription_id VARCHAR(36) PRIMARY KEY,
+ enabled BOOLEAN NOT NULL DEFAULT FALSE,
+ interval_minutes INT NOT NULL DEFAULT 30,
+ max_follow_ups INT NOT NULL DEFAULT 1,
+ quiet_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+ quiet_start VARCHAR(5) NOT NULL DEFAULT '22:00',
+ quiet_end VARCHAR(5) NOT NULL DEFAULT '08:00',
+ FOREIGN KEY (subscription_id) REFERENCES web_push_subscription(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS web_push_follow_up (
+ reminder_id BIGINT NOT NULL,
+ dose_date DATE NOT NULL,
+ status VARCHAR(16) NOT NULL,
+ mode VARCHAR(8) NOT NULL,
+ sent_count INT NOT NULL,
+ attempts INT NOT NULL,
+ next_at DATETIME(6) NOT NULL,
+ expires_at DATETIME(6) NOT NULL,
+ PRIMARY KEY (reminder_id,dose_date),
+ INDEX idx_follow_up_due (status,next_at),
+ FOREIGN KEY (reminder_id) REFERENCES web_push_reminder(id) ON DELETE CASCADE
+);
