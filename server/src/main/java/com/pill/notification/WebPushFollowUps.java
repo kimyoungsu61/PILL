@@ -146,8 +146,8 @@ public class WebPushFollowUps {
     public static Map<String, Object> payload(WebPushStore.Reminder reminder, LocalDate date, Instant expires, int followUpNumber) {
         var time = reminder.doseTime();
         boolean followUp = followUpNumber > 0;
-        return Map.of("title", followUp ? "복용 기록을 확인해 주세요" : "복용 시간이에요",
-            "body", followUp ? reminder.productName() + " 복용 기록이 아직 없어요. 드셨다면 완료로 표시해 주세요." : reminder.productName() + " 복용할 시간입니다.",
+        return Map.of("title", reminder.productName() + (followUp ? ", 챙겨 드셨나요? 💊" : " 챙기실 시간이에요 💊"),
+            "body", followUp ? "드셨다면 PILL에서 체크해 주세요." : "드신 뒤 PILL에서 체크해 주세요.",
             // A new logical alert needs a new tag: replacing the initial notification can
             // be silent, and renotify is not supported consistently across browsers.
             // A transport retry reuses this sequence, preserving notification deduplication.

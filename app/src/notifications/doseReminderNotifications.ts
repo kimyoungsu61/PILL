@@ -205,8 +205,8 @@ export async function scheduleSupplementReminders(
     const [hourText, minuteText] = time.split(':');
     return deps.scheduleNotificationAsync({
       content: {
-        title: '복용 시간이에요',
-        body: `${label} 복용할 시간입니다.`,
+        title: `${label} 챙기실 시간이에요 💊`,
+        body: '드신 뒤 PILL에서 체크해 주세요.',
         sound: 'default',
         data: {
           supplementId: options.supplementId,
