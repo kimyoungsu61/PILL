@@ -6,6 +6,28 @@ import static org.assertj.core.api.Assertions.assertThat;
 class ProductImageMetadataTest {
     private static final String URL = "https://www.doctorsbest.com/products/high-absorption-magnesium";
 
+    @Test void supportsTheActualNanowellManufacturerAndItsProductPhoto() {
+        assertThat(ProductImagePageClient.publisher("mynanowell.com")).isTrue();
+        var page = new ProductImagePageClient.Page("https://mynanowell.com/products/hovenia-rx-milkthistle-tablet", """
+            <script type="application/ld+json">{"@type":"Product","brand":{"name":"Nanowell"},
+              "name":"Hovenia-Rx® Milk Thistle (120 Tablets)","image":"https://cdn.shopify.com/nanowell-hovenia.jpg"}</script>
+            """);
+        assertThat(ProductImageMetadata.extract(page, "nanowell", "HOVENIA-Rx MILK THISTLE", "120 Tablets"))
+            .isEqualTo("https://cdn.shopify.com/nanowell-hovenia.jpg");
+        assertThat(ProductImagePageClient.publisher("mynanowell.com.evil.test")).isFalse();
+        var actualMarkup = new ProductImagePageClient.Page(page.url(), """
+            <script type="application/ld+json">{invalid product JSON}</script>
+            <meta property="og:site_name" content="Nanowell®">
+            <meta property="og:title" content="Hovenia-Rx® Milk Thistle (120 Tablets)">
+            <meta property="og:type" content="product">
+            <meta property="og:image" content="http://mynanowell.com/cdn/shop/files/ho-1.png?v=1778100214">
+            <meta property="og:image:secure_url" content="https://mynanowell.com/cdn/shop/files/ho-1.png?v=1778100214">
+            """);
+        assertThat(ProductImageMetadata.extract(actualMarkup, "nanowell", "HOVENIA-Rx MILK THISTLE", "120 TABLETS"))
+            .isEqualTo("https://mynanowell.com/cdn/shop/files/ho-1.png?v=1778100214");
+        assertThat(ProductImageMetadata.extract(actualMarkup, "Other Brand", "HOVENIA-Rx MILK THISTLE", "120 TABLETS")).isEmpty();
+    }
+
     @Test void acceptsTheExistingFullLabelNameWhenTheManufacturerHeadingUsesAShortName() {
         var url = "https://doctorsbest.com/products/doctor-s-best-high-absorption-magnesium-lysinate-glycinate-chelated-albion-traacs-120-tablets-100-mg-per-tablet-15";
         var html = """
