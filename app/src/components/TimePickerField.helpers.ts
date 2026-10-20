@@ -15,6 +15,37 @@ export function stepMinute(current: number, delta: number) {
   return clampMinute(current + delta);
 }
 
+type RepeatScheduler = (work: () => void, delay: number) => () => void;
+
+// Invoked by Pressable's long-press gesture. A generation also invalidates a
+// callback already queued when the user releases or starts another press.
+export function createPressRepeat(step: () => void, schedule: RepeatScheduler = (work, delay) => {
+  const timer = setTimeout(work, delay);
+  return () => clearTimeout(timer);
+}) {
+  let generation = 0;
+  let cancel: (() => void) | undefined;
+  function stop() {
+    generation++;
+    cancel?.();
+    cancel = undefined;
+  }
+  return {
+    stop,
+    start() {
+      stop();
+      const current = generation;
+      let repeats = 0;
+      function tick() {
+        if (current !== generation) return;
+        step();
+        if (current === generation) cancel = schedule(tick, repeats++ < 5 ? 130 : 70);
+      }
+      tick();
+    },
+  };
+}
+
 export function formatClockTime(hour: number, minute: number) {
   return `${String(clampHour(hour)).padStart(2, '0')}:${String(clampMinute(minute)).padStart(2, '0')}`;
 }

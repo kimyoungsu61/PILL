@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { AppState, Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ChevronDown, ChevronUp } from 'lucide-react-native';
 import { colors, radius, shadow, spacing, type } from '../theme';
-import { clampHour, formatClockTime, parseClockTime, stepMinute } from './TimePickerField.helpers';
+import { clampHour, createPressRepeat, formatClockTime, parseClockTime, stepMinute } from './TimePickerField.helpers';
 
 type Props = {
   label?: string;
@@ -67,11 +67,12 @@ export default function TimePickerField({ label = '알림 시간', value, onChan
           <Pressable style={styles.sheet}>
             <View style={styles.sheetHandle} />
             <Text style={styles.title}>{label}</Text>
-            <Text style={styles.subtitle}>위아래 버튼으로 시간을 맞춰주세요.</Text>
+            <Text style={styles.subtitle}>길게 누르면 빠르게 조절할 수 있어요.</Text>
 
             <View style={styles.pickerRow}>
               <TimeColumn
                 label="시"
+                active={isOpen && !disabled}
                 onDown={() => setDraftHour((current) => clampHour(current - 1))}
                 onUp={() => setDraftHour((current) => clampHour(current + 1))}
                 value={String(draftHour).padStart(2, '0')}
@@ -79,6 +80,7 @@ export default function TimePickerField({ label = '알림 시간', value, onChan
               <Text style={styles.colon}>:</Text>
               <TimeColumn
                 label="분"
+                active={isOpen && !disabled}
                 onDown={() => setDraftMinute((current) => stepMinute(current, -1))}
                 onUp={() => setDraftMinute((current) => stepMinute(current, 1))}
                 value={String(draftMinute).padStart(2, '0')}
@@ -102,26 +104,56 @@ export default function TimePickerField({ label = '알림 시간', value, onChan
 
 type TimeColumnProps = {
   label: string;
+  active: boolean;
   value: string;
   onUp: () => void;
   onDown: () => void;
 };
 
-function TimeColumn({ label, value, onUp, onDown }: TimeColumnProps) {
+function TimeColumn({ label, active, value, onUp, onDown }: TimeColumnProps) {
   return (
     <View style={styles.timeColumn}>
-      <Pressable accessibilityLabel={`${label} 올리기`} accessibilityRole="button" onPress={onUp} style={({ pressed }) => [styles.stepButton, pressed && styles.pressed]}>
-        <ChevronUp size={24} color={colors.ink} strokeWidth={2.8} />
-      </Pressable>
+      <TimeStepButton label={`${label} 올리기`} active={active} onStep={onUp} direction="up" />
       <View style={styles.numberPanel}>
         <Text style={styles.numberText}>{value}</Text>
         <Text style={styles.numberLabel}>{label}</Text>
       </View>
-      <Pressable accessibilityLabel={`${label} 내리기`} accessibilityRole="button" onPress={onDown} style={({ pressed }) => [styles.stepButton, pressed && styles.pressed]}>
-        <ChevronDown size={24} color={colors.ink} strokeWidth={2.8} />
-      </Pressable>
+      <TimeStepButton label={`${label} 내리기`} active={active} onStep={onDown} direction="down" />
     </View>
   );
+}
+
+function TimeStepButton({ label, active, onStep, direction }: { label: string; active: boolean; onStep: () => void; direction: 'up' | 'down' }) {
+  const latestStep = useRef(onStep);
+  latestStep.current = onStep;
+  const [repeat] = useState(() => createPressRepeat(() => latestStep.current()));
+  useEffect(() => {
+    if (!active) repeat.stop();
+    return repeat.stop;
+  }, [active, repeat]);
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', state => { if (state !== 'active') repeat.stop(); });
+    function hidden() { if (document.hidden) repeat.stop(); }
+    if (Platform.OS === 'web') {
+      window.addEventListener('blur', repeat.stop);
+      document.addEventListener('visibilitychange', hidden);
+    }
+    return () => {
+      subscription.remove();
+      if (Platform.OS === 'web') {
+        window.removeEventListener('blur', repeat.stop);
+        document.removeEventListener('visibilitychange', hidden);
+      }
+      repeat.stop();
+    };
+  }, [repeat]);
+  const Icon = direction === 'up' ? ChevronUp : ChevronDown;
+  return <Pressable accessibilityLabel={label} accessibilityRole="button" disabled={!active}
+    delayLongPress={350} onPress={onStep} onLongPress={() => { if (active) repeat.start(); }}
+    onPressOut={repeat.stop} onBlur={repeat.stop}
+    style={({ pressed }) => [styles.stepButton, pressed && styles.pressed]}>
+    <Icon size={24} color={colors.ink} strokeWidth={2.8} />
+  </Pressable>;
 }
 
 const styles = StyleSheet.create({
