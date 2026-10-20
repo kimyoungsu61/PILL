@@ -19,7 +19,8 @@ class ProductImageServiceTest {
     private final ProductImagePageClient pages = mock(ProductImagePageClient.class);
     private final InMemoryRateLimiter limiter = mock(InMemoryRateLimiter.class);
     private final Clock clock = Clock.fixed(Instant.parse("2026-10-20T02:00:00Z"), ZoneOffset.UTC);
-    private final ProductImageService service = new ProductImageService(repository, gemini, pages, limiter, clock);
+    private final ProductImageService service = new ProductImageService(repository, gemini, pages, limiter, clock,
+        mock(org.springframework.transaction.PlatformTransactionManager.class));
 
     private UserSupplement product(String normalized) {
         var user = new User("owner@example.test", "hash");
@@ -67,6 +68,17 @@ class ProductImageServiceTest {
         verifyNoInteractions(gemini, pages, limiter);
     }
 
+    @Test void aPreviousSuccessfulPhotoWinsOverANewerFailedLookupCache() {
+        var supplement = product("""
+            {"productImageLookupVersion":2,"productImage":{"status":"NOT_FOUND","imageUri":"","sourceUrl":"","checkedAt":"2026-10-20T02:00:00Z"}}
+            """);
+        supplement.updateImageUri("https://cdn.shopify.com/known-product.jpg");
+        var result = service.resolve(1L, 7L);
+        assertThat(result.status()).isEqualTo("FOUND");
+        assertThat(result.imageUri()).isEqualTo(supplement.getImageUri());
+        verifyNoInteractions(gemini, pages, limiter);
+    }
+
     @Test void retriesOldFailedLookupsAndInspectsUsefulSourcesAfterTheFirstThree() throws Exception {
         var supplement = product("""
             {"productImage":{"status":"NOT_FOUND","imageUri":"","sourceUrl":"","checkedAt":"2026-10-20T02:00:00Z"},
@@ -80,7 +92,7 @@ class ProductImageServiceTest {
                 <meta property="og:image" content="https://cdn.shopify.com/magnesium-240.jpg">
                 """));
         assertThat(service.resolve(1L, 7L).status()).isEqualTo("FOUND");
-        assertThat(json.readTree(supplement.getScan().getNormalizedAiResultJson()).path("productImageLookupVersion").asInt()).isEqualTo(2);
+        assertThat(json.readTree(supplement.getScan().getNormalizedAiResultJson()).path("productImageLookupVersion").asInt()).isEqualTo(3);
         assertThat(service.resolve(1L, 7L).imageUri()).isEqualTo("https://cdn.shopify.com/magnesium-240.jpg");
         verifyNoInteractions(gemini);
         verify(pages, times(4)).read(anyString());

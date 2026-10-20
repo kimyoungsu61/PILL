@@ -46,7 +46,10 @@ public final class ProductImageMetadata {
         var uri = URI.create(page.url());
         boolean productPage = metadata.getOrDefault("og:type", "").contains("product")
             || uri.getPath().matches("(?i).*/(products?|pr|p)/.+");
-        if (productPage && matches(metadata.getOrDefault("og:title", ""), brand, product, page.url())) {
+        // Brand-owned shops often put the brand only in og:site_name. Product identity
+        // still has to match the page title and explicit variant details.
+        var pageTitle = metadata.getOrDefault("og:site_name", "") + " " + metadata.getOrDefault("og:title", "");
+        if (productPage && matches(pageTitle, brand, product, page.url())) {
             return resolveImage(page.url(), metadata.getOrDefault("og:image:secure_url", metadata.getOrDefault("og:image", "")));
         }
         return "";

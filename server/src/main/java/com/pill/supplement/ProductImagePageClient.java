@@ -17,7 +17,8 @@ public class ProductImagePageClient {
         "lifeextension.com", "jarrow.com", "jarrowformulas.com", "naturesway.com", "naturemade.com",
         "naturesbounty.com", "nordic.com", "nordicnaturals.com", "sportsresearch.com", "natrol.com",
         "gardenoflife.com", "pureencapsulationspro.com", "pureencapsulations.com", "gnc.com",
-        "iherb.com", "vitacost.com", "swansonvitamins.com", "cgnvitamins.com", "kirklandvitamins.com");
+        "iherb.com", "vitacost.com", "swansonvitamins.com", "cgnvitamins.com", "kirklandvitamins.com",
+        "mynanowell.com", "nanowellhealth.com");
     private final HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(3))
         .followRedirects(HttpClient.Redirect.NEVER).build();
 
@@ -67,7 +68,7 @@ public class ProductImagePageClient {
             var uri = URI.create(url);
             var host = uri.getHost();
             return https(uri) && (publisher(host) || Set.of("cdn.shopify.com", "images.ctfassets.net",
-                "res.cloudinary.com", "images.prismic.io", "m.media-amazon.com").contains(host))
+                "res.cloudinary.com", "images.prismic.io", "m.media-amazon.com", "cdn.imweb.me").contains(host))
                 && !uri.getPath().toLowerCase(java.util.Locale.ROOT).matches(".*(logo|banner|favicon|placeholder|supplement.facts).*" );
         } catch (Exception ignored) { return false; }
     }

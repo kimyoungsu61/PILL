@@ -25,7 +25,7 @@ export default function SupplementThumb({ supplementId, imageUri, name, size = 5
   const account = email || '';
   const [resolved, setResolved] = useState<{ id: number; account: string; uri: string } | null>(null);
   const savedUri = imageUri?.startsWith('https://') ? imageUri : undefined;
-  const representativeUri = resolved && resolved.id === supplementId && resolved.account === account ? resolved.uri : savedUri;
+  const representativeUri = savedUri || (resolved && resolved.id === supplementId && resolved.account === account ? resolved.uri : undefined);
   const [failedUri, setFailedUri] = useState<string | null>(null);
   const showImage = Boolean(representativeUri && failedUri !== representativeUri);
   useEffect(() => {

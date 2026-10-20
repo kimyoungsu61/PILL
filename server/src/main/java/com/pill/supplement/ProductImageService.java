@@ -8,7 +8,8 @@ import com.pill.gemini.GeminiClient;
 import com.pill.model.UserSupplement;
 import com.pill.repository.UserSupplementRepository;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -16,7 +17,7 @@ import java.util.HashSet;
 
 @Service
 public class ProductImageService {
-    private static final int LOOKUP_VERSION = 2;
+    private static final int LOOKUP_VERSION = 3;
     private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(ProductImageService.class);
     private static final ObjectMapper JSON = new ObjectMapper();
     private final UserSupplementRepository supplements;
@@ -24,24 +25,37 @@ public class ProductImageService {
     private final ProductImagePageClient pages;
     private final InMemoryRateLimiter limiter;
     private final Clock clock;
+    private final TransactionTemplate transactions;
+    private final Object[] lookupLocks = java.util.stream.IntStream.range(0, 64).mapToObj(index -> new Object()).toArray();
 
     public record Result(String status, String imageUri, String sourceUrl, String checkedAt) { }
 
     public ProductImageService(UserSupplementRepository supplements, GeminiClient gemini,
-        ProductImagePageClient pages, InMemoryRateLimiter limiter, Clock clock) {
+        ProductImagePageClient pages, InMemoryRateLimiter limiter, Clock clock, PlatformTransactionManager transactionManager) {
         this.supplements = supplements;
         this.gemini = gemini;
         this.pages = pages;
         this.limiter = limiter;
         this.clock = clock;
+        this.transactions = new TransactionTemplate(transactionManager);
     }
 
-    @Transactional
     public Result resolve(Long userId, Long supplementId) {
+        // Take the lock before starting a transaction and release it only after commit. A
+        // concurrent phone/browser lookup must observe the committed successful result.
+        synchronized (lookupLocks[Math.floorMod(supplementId.hashCode(), lookupLocks.length)]) {
+            return transactions.execute(status -> resolveInTransaction(userId, supplementId));
+        }
+    }
+
+    private Result resolveInTransaction(Long userId, Long supplementId) {
         var supplement = supplements.findByIdAndUserId(supplementId, userId)
             .orElseThrow(() -> new IllegalArgumentException("supplement not found"));
         var stored = stored(supplement);
         var previous = stored.path("productImage");
+        var savedImage = displayImage(supplement);
+        if (!savedImage.isBlank()) return new Result("FOUND", savedImage, previous.path("sourceUrl").asText(""),
+            previous.path("checkedAt").asText(clock.instant().toString()));
         if (fresh(previous) && ("FOUND".equals(previous.path("status").asText())
             || stored.path("productImageLookupVersion").asInt() == LOOKUP_VERSION)) return JSON.convertValue(previous, Result.class);
         limiter.consume("product-image-hour", userId.toString(), 30, Duration.ofHours(1));
