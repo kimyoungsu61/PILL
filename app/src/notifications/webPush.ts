@@ -2,7 +2,10 @@ import { apiRequest } from '../api/client';
 
 const SUBSCRIPTION_KEY = 'pill.web-push.subscription';
 let workerPromise: Promise<ServiceWorkerRegistration> | undefined;
-export type WebPushState = { id: string; enabled: boolean; reminders: { supplementId: number; time: string }[] };
+export type FollowUpSettings = { enabled: boolean; intervalMinutes: number; maxFollowUps: number; quietEnabled: boolean; quietStart: string; quietEnd: string };
+export const defaultFollowUpSettings: FollowUpSettings = { enabled: false, intervalMinutes: 30, maxFollowUps: 1, quietEnabled: false, quietStart: '22:00', quietEnd: '08:00' };
+export type WebPushState = { id: string; enabled: boolean; reminders: { supplementId: number; time: string }[]; followUp?: FollowUpSettings };
+export type ReminderDose = { supplementId: number; name: string; doseDate: string; doseTime: string; status: string; active: boolean; canSnooze: boolean; nextReminderAt: string | null };
 export type WebPushConfig = { enabled: boolean; publicKey: string };
 export type WebPushPreparation = { registration: ServiceWorkerRegistration; subscription: PushSubscription | null };
 
@@ -71,6 +74,17 @@ export function saveWebReminderTimes(token: string, state: WebPushState, supplem
 }
 export function sendWebPushTest(token: string, state: WebPushState) {
   return apiRequest<void>('/api/web-push/subscriptions/' + encodeURIComponent(state.id) + '/test', { method: 'POST' }, token);
+}
+export function saveFollowUpSettings(token: string, state: WebPushState, settings: FollowUpSettings) {
+  return apiRequest<WebPushState>('/api/web-push/subscriptions/' + encodeURIComponent(state.id) + '/follow-up', { method: 'PUT', body: JSON.stringify(settings) }, token);
+}
+export function getReminderDose(token: string, state: WebPushState, supplementId: number, doseDate: string, doseTime: string) {
+  return apiRequest<ReminderDose>('/api/web-push/subscriptions/' + encodeURIComponent(state.id) + '/doses/' + supplementId
+    + '?doseDate=' + encodeURIComponent(doseDate) + '&doseTime=' + encodeURIComponent(doseTime), {}, token);
+}
+export function actOnReminderDose(token: string, state: WebPushState, dose: Pick<ReminderDose, 'supplementId' | 'doseDate' | 'doseTime'>, action: 'TAKEN' | 'SKIPPED' | 'SNOOZE') {
+  return apiRequest<ReminderDose>('/api/web-push/subscriptions/' + encodeURIComponent(state.id) + '/doses/' + dose.supplementId,
+    { method: 'POST', body: JSON.stringify({ doseDate: dose.doseDate, doseTime: dose.doseTime, action }) }, token);
 }
 export async function disconnectWebPush(token?: string, state?: WebPushState | null) {
   if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return;

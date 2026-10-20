@@ -10,8 +10,9 @@ import org.springframework.stereotype.Component;
 public class WebPushScheduler {
     private static final Logger log=LoggerFactory.getLogger(WebPushScheduler.class);
     private final WebPushStore store;private final WebPushDispatcher dispatcher;private final WebPushSender sender;private final Clock clock;
-    public WebPushScheduler(WebPushStore store,WebPushDispatcher dispatcher,WebPushSender sender,Clock clock) {
-        this.store=store;this.dispatcher=dispatcher;this.sender=sender;this.clock=clock;
+    private final WebPushFollowUpStore followUpStore;private final WebPushFollowUps followUps;
+    public WebPushScheduler(WebPushStore store,WebPushDispatcher dispatcher,WebPushSender sender,Clock clock,WebPushFollowUpStore followUpStore,WebPushFollowUps followUps) {
+        this.store=store;this.dispatcher=dispatcher;this.sender=sender;this.clock=clock;this.followUpStore=followUpStore;this.followUps=followUps;
     }
     @Scheduled(fixedDelayString="${pill.web-push.poll-ms:30000}",initialDelayString="${pill.web-push.initial-delay-ms:30000}")
     public void tick() {
@@ -19,7 +20,10 @@ public class WebPushScheduler {
         for(var id:store.activeReminderIds(clock.instant())) {
             try{dispatcher.dispatch(id);}catch(Exception e){log.warn("Web reminder dispatch failed: {}",e.getClass().getSimpleName());}
         }
+        for(var key:followUpStore.due(clock.instant())) {
+            try{followUps.dispatch(key);}catch(Exception e){log.warn("Follow-up reminder dispatch failed: {}",e.getClass().getSimpleName());}
+        }
     }
     @Scheduled(fixedDelay=86400000,initialDelay=600000)
-    public void purge() { if(sender.enabled()) store.purge(clock.instant()); }
+    public void purge() { if(sender.enabled()) {followUpStore.purge(clock.instant());store.purge(clock.instant());} }
 }

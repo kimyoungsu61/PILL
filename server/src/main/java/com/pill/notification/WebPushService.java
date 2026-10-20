@@ -22,10 +22,11 @@ public class WebPushService {
     private final WebPushSender sender;
     private final Clock clock;
     private final InMemoryRateLimiter limiter;
-    public WebPushService(WebPushStore store,WebPushSender sender,Clock clock,InMemoryRateLimiter limiter) {
-        this.store=store;this.sender=sender;this.clock=clock;this.limiter=limiter;
+    private final WebPushFollowUpStore followUps;
+    public WebPushService(WebPushStore store,WebPushSender sender,Clock clock,InMemoryRateLimiter limiter,WebPushFollowUpStore followUps) {
+        this.store=store;this.sender=sender;this.clock=clock;this.limiter=limiter;this.followUps=followUps;
     }
-    public record State(String id,boolean enabled,List<WebPushStore.ReminderView> reminders) {}
+    public record State(String id,boolean enabled,List<WebPushStore.ReminderView> reminders,FollowUpSettings followUp) {}
     public Map<String,Object> config() { return Map.of("enabled",sender.enabled(),"publicKey",sender.publicKey()); }
     @Transactional
     public State connect(SessionPrincipal p,String endpoint,String key,String auth,String zone) throws Exception {
@@ -40,10 +41,14 @@ public class WebPushService {
             throw new ResponseStatusException(HttpStatus.CONFLICT,"알림 기기는 최대 5대까지 연결할 수 있어요.");
         var device=new WebPushStore.Device(old==null?UUID.randomUUID().toString():old.id(),p.userId(),p.sessionId(),endpoint,key,auth,zone,true);
         if(old==null) store.insert(device,hash,clock.instant()); else store.reconnect(device,clock.instant());
-        return new State(device.id(),true,store.reminders(device.id()));
+        return new State(device.id(),true,store.reminders(device.id()),followUps.settings(device.id()));
     }
     @Transactional(readOnly=true)
-    public State state(SessionPrincipal p,String id) { var d=store.owned(p,id);return new State(id,d.enabled(),store.reminders(id)); }
+    public State state(SessionPrincipal p,String id) { var d=store.owned(p,id);return new State(id,d.enabled(),store.reminders(id),followUps.settings(id)); }
+    @Transactional
+    public State setFollowUp(SessionPrincipal p,String id,FollowUpSettings settings) {
+        store.owned(p,id);settings.validate();store.lockDevice(id);followUps.saveSettings(id,settings);return state(p,id);
+    }
     @Transactional
     public State setTimes(SessionPrincipal p,String id,long supplementId,List<String> requested) {
         requireEnabled();store.owned(p,id);

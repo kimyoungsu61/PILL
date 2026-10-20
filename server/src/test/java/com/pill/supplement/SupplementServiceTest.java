@@ -42,7 +42,7 @@ import static org.assertj.core.api.Assertions.tuple;
 
 @DataJpaTest
 @Import({SupplementService.class, WebPushStore.class, SupplementServiceTest.FixedClockConfiguration.class})
-@Sql("/db/web_push.sql")
+@Sql({"/db/mysql_mode.sql", "/db/web_push.sql"})
 @TestPropertySource(properties = "spring.jpa.hibernate.ddl-auto=create-drop")
 class SupplementServiceTest {
     @Autowired SupplementService supplements;

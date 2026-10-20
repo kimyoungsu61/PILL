@@ -48,6 +48,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class WebPushIntegrationTest {
     @Autowired MockMvc mvc;@Autowired DataSource dataSource;@Autowired ObjectMapper json;
     @Autowired WebPushService service;@Autowired WebPushStore store;@Autowired WebPushDispatcher dispatcher;@Autowired WebPushScheduler scheduler;
+    @Autowired WebPushFollowUpStore followUpStore;@Autowired WebPushFollowUps followUps;
     @Autowired AuthSessionService sessions;@Autowired UserRepository users;@Autowired SupplementScanRepository scans;
     @Autowired UserSupplementRepository supplements;@Autowired DoseLogRepository logs;@Autowired SupplementService supplementService;
     @Autowired jakarta.persistence.EntityManager entityManager;
@@ -196,6 +197,155 @@ class WebPushIntegrationTest {
         entityManager.flush();
         assertThat(store.activeReminderIds(clock.instant())).isEmpty();
     }
+    @Test void followUpsAreOptInAndSettingsAreValidatedAndDeviceSpecific() throws Exception {
+        var first=connect("follow-settings");var other=connect("follow-other");
+        assertThat(first.followUp()).isEqualTo(FollowUpSettings.defaults());
+        mvc.perform(put("/api/web-push/subscriptions/"+first.id()+"/follow-up").header("Authorization","Bearer "+token)
+            .contentType("application/json").content(json.writeValueAsString(new FollowUpSettings(true,15,2,true,"22:00","08:00"))))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.followUp.maxFollowUps").value(2));
+        assertThat(service.state(principal,other.id()).followUp().enabled()).isFalse();
+        for(var invalid:List.of(new FollowUpSettings(true,0,1,false,"22:00","08:00"),new FollowUpSettings(true,30,4,false,"22:00","08:00"),
+            new FollowUpSettings(true,30,1,true,"22:00","22:00"),new FollowUpSettings(true,30,1,true,"25:00","08:00"))) {
+            mvc.perform(put("/api/web-push/subscriptions/"+first.id()+"/follow-up").header("Authorization","Bearer "+token)
+                .contentType("application/json").content(json.writeValueAsString(invalid))).andExpect(status().isBadRequest());
+        }
+        service.setTimes(principal,other.id(),product.getId(),List.of("09:00"));
+        at("2026-10-07T00:00:10Z");scheduler.tick();at("2026-10-07T00:30:10Z");scheduler.tick();
+        verify(sender,times(1)).send(any(),any());
+    }
+    @Test void followUpsWaitForTheirIntervalDeduplicateAndStopAtTheConfiguredLimit() throws Exception {
+        var state=followEnabled("follow-limit",1,2);long id=initial(state);
+        at("2026-10-07T00:01:09Z");scheduler.tick();verify(sender,times(1)).send(any(),any());
+        at("2026-10-07T00:01:10Z");scheduler.tick();scheduler.tick();
+        verify(sender,times(2)).send(any(),any());
+        at("2026-10-07T00:02:10Z");scheduler.tick();scheduler.tick();
+        at("2026-10-07T00:03:10Z");scheduler.tick();
+        verify(sender,times(3)).send(any(),any());
+        assertThat(followUpStore.find(id,LocalDate.of(2026,10,7)).sentCount()).isEqualTo(2);
+        assertThat(followUpStore.due(clock.instant())).isEmpty();
+    }
+    @Test void takenOrSkippedFromNormalProductScreenCancelsAllDevicesFollowUps() throws Exception {
+        for(var status:List.of("TAKEN","SKIPPED")) {
+            at("2026-10-06T23:59:00Z");
+            var state=followEnabled("follow-record-"+status,1,2);var id=initial(state);
+            supplementService.logDose(user.getId(),product.getId(),new com.pill.supplement.dto.DoseLogRequest(status,"","09:00"));
+            entityManager.flush();
+            assertThat(followUpStore.find(id,LocalDate.of(2026,10,7)).status()).isEqualTo("CANCELLED");
+            at("2026-10-07T00:01:10Z");scheduler.tick();
+            supplementService.clearDoseLog(user.getId(),product.getId(),"09:00");entityManager.flush();
+        }
+        verify(sender,times(2)).send(any(),any());
+    }
+    @Test void skippedDoseDoesNotSendEvenItsOriginalNotification() throws Exception {
+        var state=followEnabled("follow-skipped-initial",1,1);
+        logs.saveAndFlush(new DoseLog(product,LocalDate.of(2026,10,7),"09:00","SKIPPED",""));
+        initial(state);verify(sender,never()).send(any(),any());
+    }
+    @Test void disablingFollowUpsCancelsPendingAutomaticNotificationsAndDoesNotBackfillOnReenable() throws Exception {
+        var state=followEnabled("follow-disable",1,3);var id=initial(state);
+        service.setFollowUp(principal,state.id(),FollowUpSettings.defaults());
+        service.setFollowUp(principal,state.id(),new FollowUpSettings(true,1,3,false,"22:00","08:00"));
+        at("2026-10-07T00:01:10Z");scheduler.tick();
+        verify(sender,times(1)).send(any(),any());
+        assertThat(followUpStore.find(id,LocalDate.of(2026,10,7)).status()).isEqualTo("CANCELLED");
+    }
+    @Test void noStaleFollowUpsAfterAnOutageOrTheNextProductDose() throws Exception {
+        var state=followEnabled("follow-outage",1,3);var id=initial(state);
+        at("2026-10-07T00:06:10Z");scheduler.tick();verify(sender,times(1)).send(any(),any());
+        assertThat(followUpStore.find(id,LocalDate.of(2026,10,7)).status()).isEqualTo("CANCELLED");
+        at("2026-10-07T00:07:00Z");
+        supplementService.updateDoseTimes(user.getId(),product.getId(),new UpdateDoseTimesRequest(List.of("09:08","09:09")));entityManager.flush();
+        service.setTimes(principal,state.id(),product.getId(),List.of("09:08"));
+        at("2026-10-07T00:08:10Z");scheduler.tick();
+        at("2026-10-07T00:09:10Z");scheduler.tick();verify(sender,times(2)).send(any(),any());
+    }
+    @Test void quietHoursIncludeTheirStartExcludeTheirEndAndCanCrossMidnight() {
+        var settings=new FollowUpSettings(true,30,1,true,"22:00","08:00");
+        assertThat(settings.quietAt(java.time.LocalTime.of(22,0))).isTrue();
+        assertThat(settings.quietAt(java.time.LocalTime.of(0,15))).isTrue();
+        assertThat(settings.quietAt(java.time.LocalTime.of(8,0))).isFalse();
+        var daytime=new FollowUpSettings(true,30,1,true,"12:00","13:00");
+        assertThat(daytime.quietAt(java.time.LocalTime.of(12,30))).isTrue();
+        assertThat(daytime.quietAt(java.time.LocalTime.of(14,0))).isFalse();
+    }
+    @Test void quietHoursSuppressOnlyExtraNotificationsAndNeverDeferThemUntilMorning() throws Exception {
+        var state=followEnabled("follow-quiet",1,2);
+        service.setFollowUp(principal,state.id(),new FollowUpSettings(true,1,2,true,"09:01","09:30"));
+        initial(state);at("2026-10-07T00:30:10Z");scheduler.tick();verify(sender,times(1)).send(any(),any());
+    }
+    @Test void aLateNightFollowUpKeepsItsOriginalDoseDateAcrossMidnight() throws Exception {
+        at("2026-10-07T14:58:00Z");
+        supplementService.updateDoseTimes(user.getId(),product.getId(),new UpdateDoseTimesRequest(List.of("23:59")));entityManager.flush();
+        var state=connect("follow-midnight");
+        service.setFollowUp(principal,state.id(),new FollowUpSettings(true,1,1,false,"22:00","08:00"));
+        service.setTimes(principal,state.id(),product.getId(),List.of("23:59"));
+        at("2026-10-07T14:59:10Z");scheduler.tick();at("2026-10-07T15:00:10Z");scheduler.tick();scheduler.tick();
+        verify(sender,times(2)).send(any(),any());
+        verify(sender).send(any(),argThat(payload -> payload instanceof Map<?,?> map && "복용 기록을 확인해 주세요".equals(map.get("title"))
+            && ((Map<?,?>)map.get("data")).get("doseDate").equals("2026-10-07")));
+        var result=followUps.action(principal,state.id(),product.getId(),LocalDate.of(2026,10,7),"23:59","TAKEN");
+        assertThat(result.status()).isEqualTo("TAKEN");
+        assertThat(logs.findBySupplementIdAndDoseDateAndDoseTime(product.getId(),LocalDate.of(2026,10,7),"23:59")).isPresent();
+        assertThat(logs.findBySupplementIdAndDoseDate(product.getId(),LocalDate.of(2026,10,8))).isEmpty();
+    }
+    @Test void explicitSnoozeReplacesTheAutomaticTimeAndDoesNotMarkTheDoseTaken() throws Exception {
+        var state=followEnabled("follow-snooze",1,1);var id=initial(state);
+        var date=LocalDate.of(2026,10,7);
+        var view=followUps.action(principal,state.id(),product.getId(),date,"09:00","SNOOZE");
+        assertThat(view.status()).isEmpty();assertThat(view.nextReminderAt()).isEqualTo(Instant.parse("2026-10-07T00:15:10Z"));
+        at("2026-10-07T00:01:10Z");scheduler.tick();verify(sender,times(1)).send(any(),any());
+        at("2026-10-07T00:15:10Z");scheduler.tick();scheduler.tick();verify(sender,times(2)).send(any(),any());
+        assertThat(followUpStore.find(id,date).sentCount()).isEqualTo(1);
+    }
+    @Test void explicitSnoozeWorksWithoutAutomaticFollowUpsButNeverPastThreeExtraSends() throws Exception {
+        var state=connect("follow-snooze-manual");initial(state);var date=LocalDate.of(2026,10,7);
+        for(int count=1;count<=3;count++) {
+            var view=followUps.action(principal,state.id(),product.getId(),date,"09:00","SNOOZE");
+            when(clock.instant()).thenReturn(view.nextReminderAt());scheduler.tick();scheduler.tick();
+        }
+        verify(sender,times(4)).send(any(),any());
+        assertThat(followUps.view(principal,state.id(),product.getId(),date,"09:00").canSnooze()).isFalse();
+        assertThatThrownBy(()->followUps.action(principal,state.id(),product.getId(),date,"09:00","SNOOZE"))
+            .isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
+    }
+    @Test void reminderActionsAreIdempotentAndRejectWrongDeviceFutureDatesAndOtherUsers() throws Exception {
+        var state=followEnabled("follow-actions",1,1);initial(state);var date=LocalDate.of(2026,10,7);
+        for(var invalidDate:List.of(date.minusDays(1),date.plusDays(1))) {
+            mvc.perform(post("/api/web-push/subscriptions/"+state.id()+"/doses/"+product.getId()).header("Authorization","Bearer "+token)
+                .contentType("application/json").content(json.writeValueAsString(Map.of("doseDate",invalidDate.toString(),"doseTime","09:00","action","TAKEN"))))
+                .andExpect(status().isConflict());
+        }
+        var stranger=users.save(new User(UUID.randomUUID()+"@example.com","hash"));var strangerToken=sessions.issue(stranger).token();
+        mvc.perform(get("/api/web-push/subscriptions/"+state.id()+"/doses/"+product.getId()).header("Authorization","Bearer "+strangerToken)
+            .param("doseDate",date.toString()).param("doseTime","09:00")).andExpect(status().isNotFound());
+        followUps.action(principal,state.id(),product.getId(),date,"09:00","TAKEN");
+        assertThat(followUps.action(principal,state.id(),product.getId(),date,"09:00","SKIPPED").status()).isEqualTo("TAKEN");
+        assertThat(logs.findBySupplementIdAndDoseDate(product.getId(),date)).hasSize(1);
+    }
+    @Test void followUpTransientRetriesAreBoundedAndExpiredEndpointsStopTheDevice() throws Exception {
+        var state=followEnabled("follow-retry",1,1);var id=initial(state);
+        when(sender.send(any(),any())).thenReturn(503,201);
+        at("2026-10-07T00:01:10Z");scheduler.tick();scheduler.tick();verify(sender,times(2)).send(any(),any());
+        at("2026-10-07T00:01:40Z");scheduler.tick();scheduler.tick();verify(sender,times(3)).send(any(),any());
+        assertThat(followUpStore.find(id,LocalDate.of(2026,10,7)).sentCount()).isEqualTo(1);
+        followUps.action(principal,state.id(),product.getId(),LocalDate.of(2026,10,7),"09:00","SNOOZE");
+        when(sender.send(any(),any())).thenReturn(410);at("2026-10-07T00:16:40Z");scheduler.tick();
+        assertThat(service.state(principal,state.id()).enabled()).isFalse();
+    }
+    @Test void logoutAndReminderDeletionPreventQueuedFollowUps() throws Exception {
+        var state=followEnabled("follow-logout",1,1);initial(state);
+        sessions.revoke(principal.sessionId());entityManager.flush();at("2026-10-07T00:01:10Z");scheduler.tick();
+        verify(sender,times(1)).send(any(),any());
+        assertThat(followUpStore.due(clock.instant())).isEmpty();
+    }
+    private WebPushService.State followEnabled(String suffix,int minutes,int count) throws Exception {
+        var state=connect(suffix);service.setFollowUp(principal,state.id(),new FollowUpSettings(true,minutes,count,false,"22:00","08:00"));return state;
+    }
+    private long initial(WebPushService.State state) {
+        service.setTimes(principal,state.id(),product.getId(),List.of("09:00"));
+        var id=store.reminderId(state.id(),product.getId(),"09:00");at("2026-10-07T00:00:10Z");scheduler.tick();return id;
+    }
+    private void at(String instant) { when(clock.instant()).thenReturn(Instant.parse(instant)); }
     private WebPushService.State connect(String suffix) throws Exception { return service.connect(principal,"https://web.push.apple.com/"+suffix,key,auth,"Asia/Seoul"); }
     private UserSupplement product(User owner,String times) {
         var scan=scans.save(new SupplementScan(owner,"{}","COMPLETED"));return supplements.saveAndFlush(new UserSupplement(owner,scan,"PILL LAB","마그네슘","하루 1회","","","","",times));

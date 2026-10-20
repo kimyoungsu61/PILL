@@ -93,6 +93,24 @@ public class WebPushStore {
     private record Reservation(String subscriptionId, String time) {}
     public void remove(String id) { db.update("DELETE FROM web_push_subscription WHERE id=?",id); }
     public void disable(String id) { db.update("UPDATE web_push_subscription SET enabled=FALSE WHERE id=?",id); }
+    public void lockDevice(String id) { db.queryForList("SELECT id FROM web_push_subscription WHERE id=? FOR UPDATE", id); }
+    public Long reminderId(String deviceId, long supplementId, String time) {
+        return db.query("SELECT id FROM web_push_reminder WHERE subscription_id=? AND supplement_id=? AND dose_time=?",
+            (rs,n) -> rs.getLong(1), deviceId, supplementId, time).stream().findFirst().orElse(null);
+    }
+    public String doseStatus(long supplementId, LocalDate date, String time) {
+        return db.query("SELECT status FROM dose_log WHERE supplement_id=? AND dose_date=? AND dose_time=?",
+            (rs,n) -> rs.getString(1), supplementId, date, time).stream().findFirst().orElse("");
+    }
+    public boolean recorded(long supplementId, LocalDate date, String time) {
+        return List.of("TAKEN", "SKIPPED").contains(doseStatus(supplementId, date, time));
+    }
+    public void cancelFollowUps(long supplementId, LocalDate date, String time) {
+        db.update("""
+            UPDATE web_push_follow_up SET status='CANCELLED' WHERE dose_date=? AND status='PENDING'
+            AND reminder_id IN (SELECT id FROM web_push_reminder WHERE supplement_id=? AND dose_time=?)
+            """, date, supplementId, time);
+    }
     public List<Long> activeReminderIds(Instant now) {
         return db.query("""
             SELECT r.id FROM web_push_reminder r JOIN web_push_subscription s ON s.id=r.subscription_id

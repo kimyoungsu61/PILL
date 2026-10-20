@@ -13,6 +13,8 @@ import { useAuth } from '../auth/AuthContext';
 import { notificationSupplementId } from '../notifications/doseReminderNotifications';
 import { supportsNotificationNavigation } from './platformNavigation';
 import DoseHistoryScreen from '../screens/DoseHistoryScreen';
+import DoseReminderScreen from '../screens/DoseReminderScreen';
+import { doseNotificationTarget, type DoseNotificationTarget } from '../notifications/doseNotificationTarget';
 import ExportDataScreen from '../screens/ExportDataScreen';
 import ImageInputScreen from '../screens/ImageInputScreen';
 import LoginScreen from '../screens/LoginScreen';
@@ -36,6 +38,7 @@ export type RootStackParamList = {
   ManualSupplement: ManualSupplementDraft | undefined;
   ScanResult: { result: ScanResult; imageUri?: string };
   SupplementDetail: { supplementId: number };
+  DoseReminder: { supplementId: number; doseDate: string; doseTime: string };
   NotificationSettings: undefined;
   DoseHistory: undefined;
   ScanHistory: undefined;
@@ -119,24 +122,25 @@ export default function AppNavigator() {
   const { token, isLoading } = useAuth();
   const navigationRef = useNavigationContainerRef<RootStackParamList>();
 
-  const pendingWebSupplement = useRef<number | null>(null);
+  const pendingWebSupplement = useRef<DoseNotificationTarget | null>(null);
   function openPendingWebSupplement() {
     if (Platform.OS !== 'web' || !token || !navigationRef.isReady()) return;
-    const fromUrl = Number(new URL(window.location.href).searchParams.get('supplementId'));
-    const id = pendingWebSupplement.current || fromUrl;
-    if (!Number.isSafeInteger(id) || id <= 0) return;
+    const params = new URL(window.location.href).searchParams;
+    const target = pendingWebSupplement.current || doseNotificationTarget({ supplementId: params.get('supplementId'), doseDate: params.get('doseDate'), doseTime: params.get('doseTime') });
+    if (!target) return;
     pendingWebSupplement.current = null;
-    const url = new URL(window.location.href); url.searchParams.delete('supplementId');
+    const url = new URL(window.location.href); url.searchParams.delete('supplementId'); url.searchParams.delete('doseDate'); url.searchParams.delete('doseTime');
     window.history.replaceState(null, '', url.pathname + url.search + url.hash);
-    navigationRef.navigate('SupplementDetail', { supplementId: id });
+    if (target.doseDate && target.doseTime) navigationRef.navigate('DoseReminder', { supplementId: target.supplementId, doseDate: target.doseDate, doseTime: target.doseTime });
+    else navigationRef.navigate('SupplementDetail', { supplementId: target.supplementId });
   }
   useEffect(() => {
     if (Platform.OS !== 'web') return undefined;
     void registerWebPushWorker()?.catch(() => undefined);
     function receiveWebNotification(event: MessageEvent) {
-      const id = Number(event.data?.supplementId);
-      if (event.data?.type !== 'PILL_OPEN_SUPPLEMENT' || !Number.isSafeInteger(id) || id <= 0) return;
-      pendingWebSupplement.current = id; openPendingWebSupplement();
+      const target = doseNotificationTarget(event.data || {});
+      if (event.data?.type !== 'PILL_OPEN_SUPPLEMENT' || !target) return;
+      pendingWebSupplement.current = target; openPendingWebSupplement();
     }
     navigator.serviceWorker?.addEventListener('message', receiveWebNotification);
     openPendingWebSupplement();
@@ -219,6 +223,7 @@ export default function AppNavigator() {
               <Stack.Screen name="ManualSupplement" component={ManualSupplementScreen} options={{ title: '직접 등록' }} />
               <Stack.Screen name="ScanResult" component={ScanResultScreen} options={{ title: '분석 결과' }} />
               <Stack.Screen name="SupplementDetail" component={SupplementDetailScreen} options={{ title: '상세' }} />
+              <Stack.Screen name="DoseReminder" component={DoseReminderScreen} options={{ title: '복용 알림' }} />
               <Stack.Screen name="NotificationSettings" component={NotificationSettingsScreen} options={{ title: '알림 설정' }} />
               <Stack.Screen name="DoseHistory" component={DoseHistoryScreen} options={{ title: '복용 기록' }} />
               <Stack.Screen name="ScanHistory" component={ScanHistoryScreen} options={{ title: '스캔 기록' }} />
