@@ -31,7 +31,7 @@ public class WebPushDispatcher {
         }
         String status="PENDING";
         try {
-            int response=sender.send(reminder.device(),WebPushFollowUps.payload(reminder,date,due.plusSeconds(300),false));
+            int response=sender.send(reminder.device(),WebPushFollowUps.payload(reminder,date,due.plusSeconds(300),0));
             if(response>=200 && response<300) status="SENT";
             else if(response==404 || response==410) {store.disable(reminder.device().id());status="EXPIRED";}
             else if(response!=429 && response<500) status="FAILED";

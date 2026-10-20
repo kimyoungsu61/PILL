@@ -68,7 +68,7 @@ public class WebPushFollowUps {
         }
         int response = 503;
         try {
-            response = sender.send(reminder.device(), payload(reminder, key.doseDate(), pending.expiresAt(), true));
+            response = sender.send(reminder.device(), payload(reminder, key.doseDate(), pending.expiresAt(), pending.sentCount() + 1));
         } catch (InterruptedException exception) { Thread.currentThread().interrupt(); }
         catch (Exception ignored) { /* Only retry within this occurrence's bounded delivery window. */ }
         if (response >= 200 && response < 300) {
@@ -143,11 +143,15 @@ public class WebPushFollowUps {
             active && status.isBlank() && pending != null && "PENDING".equals(pending.status()) ? pending.nextAt() : null);
     }
 
-    public static Map<String, Object> payload(WebPushStore.Reminder reminder, LocalDate date, Instant expires, boolean followUp) {
+    public static Map<String, Object> payload(WebPushStore.Reminder reminder, LocalDate date, Instant expires, int followUpNumber) {
         var time = reminder.doseTime();
+        boolean followUp = followUpNumber > 0;
         return Map.of("title", followUp ? "복용 기록을 확인해 주세요" : "복용 시간이에요",
             "body", followUp ? reminder.productName() + " 복용 기록이 아직 없어요. 드셨다면 완료로 표시해 주세요." : reminder.productName() + " 복용할 시간입니다.",
-            "tag", "pill-dose-" + reminder.id() + "-" + date,
+            // A new logical alert needs a new tag: replacing the initial notification can
+            // be silent, and renotify is not supported consistently across browsers.
+            // A transport retry reuses this sequence, preserving notification deduplication.
+            "tag", "pill-dose-" + reminder.id() + "-" + date + (followUp ? "-follow-" + followUpNumber : ""),
             "data", Map.of("url", "/?supplementId=" + reminder.supplementId() + "&doseDate=" + date + "&doseTime=" + time,
                 "supplementId", reminder.supplementId(), "doseDate", date.toString(), "doseTime", time, "expiresAt", expires.toEpochMilli()));
     }
