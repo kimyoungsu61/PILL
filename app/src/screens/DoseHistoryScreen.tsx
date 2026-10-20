@@ -208,7 +208,7 @@ function HistoryRow({ entry, isLast, onPress }: { entry: DoseHistoryEntry; isLas
       onPress={onPress}
       style={({ pressed }) => [styles.entryRow, !isLast && styles.entryDivider, pressed && styles.pressed]}
     >
-      <SupplementThumb imageUri={entry.imageUri} name={name} size={48} muted={!taken} />
+      <SupplementThumb supplementId={entry.supplementId} imageUri={entry.imageUri} name={name} size={48} muted={!taken} />
       <View style={styles.entryCopy}>
         <Text numberOfLines={1} style={styles.entryName}>{name}</Text>
         <Text style={styles.entryTime}>{formatDoseHistoryTime(entry.doseTime)}</Text>

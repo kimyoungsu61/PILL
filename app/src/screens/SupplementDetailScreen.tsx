@@ -307,7 +307,7 @@ export default function SupplementDetailScreen({ navigation, route }: Props) {
           <>
             <RitualSurface style={styles.identitySurface} variant="active">
               <View style={styles.identityTop}>
-                <SupplementThumb imageUri={detail.imageUri} name={displayName} size={isCompactIdentity ? 56 : 72} />
+                <SupplementThumb supplementId={detail.id} imageUri={detail.imageUri} name={displayName} size={isCompactIdentity ? 56 : 72} />
                 <View style={styles.identityCopy}>
                   <Text style={styles.brand}>{detail.brandName || '브랜드 정보 없음'}</Text>
                   {!isCompactIdentity ? <Text style={styles.title}>{displayName || '제품명 미상'}</Text> : null}

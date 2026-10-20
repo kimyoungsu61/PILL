@@ -87,7 +87,7 @@ class ScanHistoryControllerTest {
         assertThat(savedEntry.path("saved").asBoolean()).isTrue();
         assertThat(savedEntry.path("supplementId").asLong()).isEqualTo(savedSupplement.getId());
         assertThat(savedEntry.path("displayNameKo").asText()).isEqualTo("오메가3");
-        assertThat(savedEntry.path("imageUri").asText()).isEqualTo("file:///phone/omega.jpg");
+        assertThat(savedEntry.path("imageUri").asText()).isEmpty();
 
         var reviewEntry = entry(root.path("entries"), reviewScan.getId());
         assertThat(reviewEntry.path("saved").asBoolean()).isFalse();

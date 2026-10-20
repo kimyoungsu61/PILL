@@ -302,7 +302,7 @@ function NativeNotificationSettingsScreen({ navigation }: Props) {
           return (
             <RitualSurface key={item.id} padded={false} style={styles.reminderCard} variant={enabled ? 'active' : 'default'}>
               <View style={styles.reminderTop}>
-                <SupplementThumb imageUri={item.imageUri} name={name} size={52} />
+                <SupplementThumb supplementId={item.id} imageUri={item.imageUri} name={name} size={52} />
                 <View style={styles.reminderCopy}>
                   <Text numberOfLines={1} style={styles.reminderName}>{name}</Text>
                   <Text style={styles.reminderStatus}>{enabledTimes.size}/{item.times.length}개 시간 알림 켜짐</Text>

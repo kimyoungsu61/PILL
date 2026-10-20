@@ -61,6 +61,17 @@ class SupplementControllerTest {
     }
 
     @Test
+    void productImageLookupRequiresLoginAndAnOwnedProduct() throws Exception {
+        mvc.perform(post("/api/supplements/1/product-image")).andExpect(status().isUnauthorized());
+        var owner = users.save(new User("image-owner@example.com", "hash"));
+        var other = users.save(new User("image-other@example.com", "hash"));
+        var supplement = saveSupplement(owner, "Magnesium");
+        mvc.perform(post("/api/supplements/" + supplement.getId() + "/product-image")
+            .header("Authorization", "Bearer " + tokenFor(other)))
+            .andExpect(status().isNotFound());
+    }
+
+    @Test
     void supplementEndpointsRejectMissingBearerToken() throws Exception {
         mvc.perform(get("/api/home"))
             .andExpect(status().isUnauthorized())
