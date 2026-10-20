@@ -29,6 +29,7 @@ import SupplementDetailScreen from '../screens/SupplementDetailScreen';
 import SupplementsScreen from '../screens/SupplementsScreen';
 import TodayScreen from '../screens/TodayScreen';
 import type { ReminderConfirmation } from '../notifications/reminderConfirmation';
+import type { RegistrationReminders } from '../notifications/registrationReminders';
 import { colors, spacing } from '../theme';
 
 export type RootStackParamList = {
@@ -38,7 +39,7 @@ export type RootStackParamList = {
   ImageInput: undefined;
   ManualSupplement: ManualSupplementDraft | undefined;
   ScanResult: { result: ScanResult; imageUri?: string };
-  SupplementDetail: { supplementId: number };
+  SupplementDetail: { supplementId: number; registrationReminders?: RegistrationReminders };
   DoseReminder: { supplementId: number; doseDate: string; doseTime: string };
   NotificationSettings: undefined;
   DoseHistory: undefined;

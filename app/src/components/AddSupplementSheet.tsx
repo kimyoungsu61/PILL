@@ -32,7 +32,7 @@ export default function AddSupplementSheet({ visible, onClose, onScan, onManual 
             <View style={[styles.optionIcon, styles.primaryIcon]}><Camera size={23} color={colors.white} strokeWidth={2.3} /></View>
             <View style={styles.optionCopy}>
               <Text style={[styles.optionTitle, styles.primaryTitle]}>제품 촬영하기</Text>
-              <Text style={[styles.optionBody, styles.primaryBody]}>앞면 또는 뒷면 사진으로 시작해요</Text>
+              <Text style={[styles.optionBody, styles.primaryBody]}>제품 사진으로 간편하게 등록해요</Text>
             </View>
             <ChevronRight size={20} color={colors.white} />
           </Pressable>

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -12,8 +12,10 @@ import SupplementThumb from '../components/SupplementThumb';
 import TimePickerField from '../components/TimePickerField';
 import ProductGuideCard from '../components/ProductGuideCard';
 import WarningCard from '../components/WarningCard';
+import RegistrationReminderNotice from '../components/RegistrationReminderNotice';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 import { cancelSupplementReminders, scheduleSupplementReminders } from '../notifications/doseReminderNotifications';
+import { enableRegisteredSupplementReminders, type RegistrationReminders } from '../notifications/registrationReminders';
 import { colors, radius, spacing, type } from '../theme';
 import { clearTodayDetailDoseLog } from '../utils/supplementDetailDisplay';
 import { contentRailWidth, supportsSupportingColumn } from '../utils/responsiveLayout';
@@ -67,6 +69,33 @@ export default function SupplementDetailScreen({ navigation, route }: Props) {
   const hasSupportingColumn = supportsSupportingColumn(width);
   const [isLoadingGuide, setIsLoadingGuide] = useState(false);
   const [guideError, setGuideError] = useState('');
+  const [registrationReminders, setRegistrationReminders] = useState<RegistrationReminders | undefined>(route.params.registrationReminders);
+  const [isRetryingReminders, setIsRetryingReminders] = useState(false);
+  const reminderRetryInFlight = useRef(false);
+
+  useEffect(() => {
+    if (route.params.registrationReminders) {
+      setRegistrationReminders(route.params.registrationReminders);
+      navigation.setParams({ registrationReminders: undefined });
+    }
+  }, [navigation, route.params.registrationReminders]);
+
+  async function retryRegistrationReminders() {
+    if (!token || !registrationReminders || registrationReminders.supplementId !== route.params.supplementId || reminderRetryInFlight.current) return;
+    reminderRetryInFlight.current = true;
+    setIsRetryingReminders(true);
+    try {
+      setRegistrationReminders(await enableRegisteredSupplementReminders(token, {
+        supplementId: route.params.supplementId,
+        productName: detail?.productName,
+        displayNameKo: detail?.displayNameKo,
+        times: detail ? parseDoseTimes(detail.confirmedDoseTime) : registrationReminders.times,
+      }));
+    } finally {
+      reminderRetryInFlight.current = false;
+      setIsRetryingReminders(false);
+    }
+  }
 
   const loadDetail = useCallback(async () => {
     if (!token) {
@@ -303,6 +332,9 @@ export default function SupplementDetailScreen({ navigation, route }: Props) {
     <>
     <ScrollView contentContainerStyle={styles.content} style={styles.screen}>
       <View style={[styles.rail, { maxWidth: contentRailWidth(width) }]}>
+        {registrationReminders?.supplementId === route.params.supplementId ? <RegistrationReminderNotice result={registrationReminders} busy={isRetryingReminders}
+          onRetry={() => void retryRegistrationReminders()} onSettings={() => navigation.navigate('NotificationSettings')}
+          onDismiss={() => setRegistrationReminders(undefined)} /> : null}
         {detail ? (
           <>
             <RitualSurface style={styles.identitySurface} variant="active">

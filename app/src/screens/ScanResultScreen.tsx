@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import { useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Image, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AlertCircle, Bell, ChevronDown, ChevronRight, Clock3, ExternalLink, List, Pencil, Plus, RotateCcw, X } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -9,7 +9,7 @@ import TimePickerField from '../components/TimePickerField';
 import IngredientEditor from '../components/IngredientEditor';
 import ProductGuideCard from '../components/ProductGuideCard';
 import type { RootStackParamList } from '../navigation/AppNavigator';
-import { scheduleSupplementReminders } from '../notifications/doseReminderNotifications';
+import { enableRegisteredSupplementReminders } from '../notifications/registrationReminders';
 import { contentRailWidth } from '../utils/responsiveLayout';
 import { cleanScanText, doseCountSummaryText, doseTimeSummaryText, ingredientAmountText } from './ScanResultScreen.helpers';
 import { scanResultPresentation } from './scanResultPresentation';
@@ -51,6 +51,7 @@ export default function ScanResultScreen({ navigation, route }: Props) {
   const [showFullWarnings, setShowFullWarnings] = useState(false);
   const [error, setError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const saveInFlight = useRef(false);
   const previewIngredients = ingredients.slice(0, 4);
   const hasMoreIngredients = ingredients.length > previewIngredients.length;
 
@@ -91,11 +92,13 @@ export default function ScanResultScreen({ navigation, route }: Props) {
   }
 
   async function save() {
+    if (saveInFlight.current) return;
     if (!token) {
       setError('로그인이 필요합니다.');
       return;
     }
     const normalizedTimes = doseTimes.map((time) => time.trim()).filter(Boolean);
+    saveInFlight.current = true;
     setError('');
     setIsSaving(true);
     try {
@@ -109,24 +112,18 @@ export default function ScanResultScreen({ navigation, route }: Props) {
         }),
       }, token);
 
-      if (Platform.OS !== 'web') try {
-        const notificationResult = await scheduleSupplementReminders({
-          supplementId, productName, times: normalizedTimes,
-        });
-        if (notificationResult.permissionStatus !== 'granted') {
-          Alert.alert('알림 권한이 꺼져 있어요', '영양제는 저장됐지만 복용 알림은 예약하지 못했습니다. 기기 설정에서 알림 권한을 켜주세요.');
-        }
-      } catch {
-        Alert.alert('알림 예약 실패', '영양제는 저장됐지만 이 기기의 복용 알림 예약에 실패했습니다.');
-      }
+      const registrationReminders = await enableRegisteredSupplementReminders(token, {
+        supplementId, productName, times: normalizedTimes,
+      });
 
       navigation.reset({
         index: 1,
-        routes: [{ name: 'MainTabs' }, { name: 'SupplementDetail', params: { supplementId } }],
+        routes: [{ name: 'MainTabs' }, { name: 'SupplementDetail', params: { supplementId, registrationReminders } }],
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : '저장하지 못했습니다.');
     } finally {
+      saveInFlight.current = false;
       setIsSaving(false);
     }
   }

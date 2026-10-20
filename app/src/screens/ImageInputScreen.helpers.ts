@@ -2,23 +2,30 @@ export type ScanSide = 'front' | 'back';
 
 export type ScanFailureKind = 'capture' | 'image' | 'analysis' | 'connection';
 
-export type DeferredCameraState = {
+export type ScanPhotoSource = 'camera' | 'library';
+
+export type DeferredCaptureState = {
   isBackPromptVisible: boolean;
-  pendingCameraSide: ScanSide | null;
+  pendingSource: ScanPhotoSource | null;
 };
 
-export function requestBackCameraAfterPrompt(): DeferredCameraState {
+export function requestBackCaptureAfterPrompt(source: ScanPhotoSource): DeferredCaptureState {
   return {
     isBackPromptVisible: false,
-    pendingCameraSide: 'back',
+    pendingSource: source,
   };
 }
 
-export function deferredCameraSide(state: DeferredCameraState): ScanSide | null {
+export function deferredCaptureSource(state: DeferredCaptureState): ScanPhotoSource | null {
   if (state.isBackPromptVisible) {
     return null;
   }
-  return state.pendingCameraSide;
+  return state.pendingSource;
+}
+
+export function nextScanPhotos<T>(photos: { product: T | null; extra: T | null }, side: ScanSide, photo: T) {
+  // A new product photo must never reuse another product's ingredient label.
+  return side === 'front' ? { product: photo, extra: null } : { ...photos, extra: photo };
 }
 
 export function scanFailureKind(status: number | undefined, responseBody = ''): ScanFailureKind {

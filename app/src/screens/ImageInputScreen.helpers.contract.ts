@@ -1,29 +1,35 @@
 import {
-  deferredCameraSide,
-  requestBackCameraAfterPrompt,
+  deferredCaptureSource,
+  nextScanPhotos,
+  requestBackCaptureAfterPrompt,
   scanFailureKind,
 } from './ImageInputScreen.helpers';
 
-const confirmState = requestBackCameraAfterPrompt();
-
-if (confirmState.isBackPromptVisible) {
-  throw new Error('Back capture confirmation should close the prompt before opening camera.');
+for (const source of ['camera', 'library'] as const) {
+  const confirmState = requestBackCaptureAfterPrompt(source);
+  if (confirmState.isBackPromptVisible || confirmState.pendingSource !== source) {
+    throw new Error('Additional photo selection must close its prompt and queue the selected source.');
+  }
+  if (deferredCaptureSource({ isBackPromptVisible: true, pendingSource: source }) !== null) {
+    throw new Error('A native camera or album must not open over the prompt.');
+  }
+  if (deferredCaptureSource(confirmState) !== source) {
+    throw new Error('The selected camera or album must open after the prompt closes.');
+  }
 }
 
-if (confirmState.pendingCameraSide !== 'back') {
-  throw new Error(`Back capture confirmation should queue back camera: ${confirmState.pendingCameraSide}`);
+if (deferredCaptureSource({ isBackPromptVisible: false, pendingSource: null }) !== null) {
+  throw new Error('Photo selection must stay idle when no source is queued.');
 }
 
-if (deferredCameraSide({ isBackPromptVisible: true, pendingCameraSide: 'back' }) !== null) {
-  throw new Error('Deferred camera should not launch while the back prompt is still visible.');
+const originalPhotos = { product: 'bottle-one', extra: 'ingredients-one' };
+const replacedProduct = nextScanPhotos(originalPhotos, 'front', 'bottle-two');
+if (replacedProduct.product !== 'bottle-two' || replacedProduct.extra !== null) {
+  throw new Error('Replacing the product photo must discard the previous product ingredient label.');
 }
-
-if (deferredCameraSide(confirmState) !== 'back') {
-  throw new Error('Deferred camera should launch the queued back camera after the prompt closes.');
-}
-
-if (deferredCameraSide({ isBackPromptVisible: false, pendingCameraSide: null }) !== null) {
-  throw new Error('Deferred camera should stay idle when no camera is queued.');
+const replacedExtra = nextScanPhotos(originalPhotos, 'back', 'ingredients-two');
+if (replacedExtra.product !== 'bottle-one' || replacedExtra.extra !== 'ingredients-two') {
+  throw new Error('Replacing an extra photo must preserve the selected product photo.');
 }
 
 if (scanFailureKind(503, '{"code":"PROVIDER_UNAVAILABLE"}') !== 'analysis') {
