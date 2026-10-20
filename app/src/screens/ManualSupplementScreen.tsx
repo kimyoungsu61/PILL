@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   Image,
   KeyboardAvoidingView,
@@ -20,7 +20,7 @@ import RitualAction from '../components/RitualAction';
 import RitualSurface from '../components/RitualSurface';
 import TimePickerField from '../components/TimePickerField';
 import type { RootStackParamList } from '../navigation/AppNavigator';
-import { scheduleSupplementReminders } from '../notifications/doseReminderNotifications';
+import { enableRegisteredSupplementReminders } from '../notifications/registrationReminders';
 import { colors, radius, spacing, type } from '../theme';
 import { contentRailWidth } from '../utils/responsiveLayout';
 import { manualSupplementInitialValues, normalizeManualDoseTimes } from './ManualSupplementScreen.helpers';
@@ -38,6 +38,7 @@ export default function ManualSupplementScreen({ navigation, route }: Props) {
   const [imageUri, setImageUri] = useState(initialValues.imageUri);
   const [error, setError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const saveInFlight = useRef(false);
 
   function updateDoseTime(index: number, value: string) {
     setDoseTimes((current) => current.map((time, timeIndex) => timeIndex === index ? value : time));
@@ -90,6 +91,7 @@ export default function ManualSupplementScreen({ navigation, route }: Props) {
   }
 
   async function save() {
+    if (saveInFlight.current) return;
     if (!token) {
       setError('로그인이 필요합니다.');
       return;
@@ -106,6 +108,7 @@ export default function ManualSupplementScreen({ navigation, route }: Props) {
     }
 
     setError('');
+    saveInFlight.current = true;
     setIsSaving(true);
     try {
       const supplementId = await apiRequest<number>('/api/supplements/manual', {
@@ -118,25 +121,20 @@ export default function ManualSupplementScreen({ navigation, route }: Props) {
           imageUri,
         }),
       }, token);
-      try {
-        await scheduleSupplementReminders({
-          supplementId,
-          productName,
-          times: normalizedTimes,
-        });
-      } catch {
-        // Registration should still succeed even if local notification scheduling fails.
-      }
+      const registrationReminders = await enableRegisteredSupplementReminders(token, {
+        supplementId, productName, times: normalizedTimes,
+      });
       navigation.reset({
         index: 1,
         routes: [
           { name: 'MainTabs', params: { screen: 'Supplements' } },
-          { name: 'SupplementDetail', params: { supplementId } },
+          { name: 'SupplementDetail', params: { supplementId, registrationReminders } },
         ],
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : '영양제를 등록하지 못했습니다.');
     } finally {
+      saveInFlight.current = false;
       setIsSaving(false);
     }
   }
