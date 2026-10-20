@@ -1,14 +1,16 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NavigationProp } from '@react-navigation/native';
-import { Bell, ChevronRight, Plus } from 'lucide-react-native';
+import { Bell, CheckCircle2, ChevronRight, Plus, X } from 'lucide-react-native';
+import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { apiRequest } from '../api/client';
 import type { HomeResponse, TodayDose } from '../api/types';
 import { useAuth } from '../auth/AuthContext';
 import AddSupplementSheet from '../components/AddSupplementSheet';
 import DoseCheckRow from '../components/DoseCheckRow';
-import type { RootStackParamList } from '../navigation/AppNavigator';
+import type { MainTabParamList, RootStackParamList } from '../navigation/AppNavigator';
+import type { ReminderConfirmation } from '../notifications/reminderConfirmation';
 import { colors } from '../theme';
 import { applyTodayDoseStatus, clearTodayDoseStatus } from '../utils/todayDoseDisplay';
 
@@ -18,7 +20,7 @@ function timeLabel(value: string) {
   return `${hour < 12 ? '오전' : '오후'} ${hour % 12 || 12}:${String(minute).padStart(2, '0')}`;
 }
 
-export default function TodayScreen() {
+export default function TodayScreen({ route, navigation: tabNavigation }: BottomTabScreenProps<MainTabParamList, 'Today'>) {
   const { token } = useAuth();
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const [home, setHome] = useState<HomeResponse>({ supplements: [], todayDoses: [] });
@@ -27,6 +29,13 @@ export default function TodayScreen() {
   const [isPosting, setIsPosting] = useState(false);
   const [savedMessage, setSavedMessage] = useState('');
   const [showAdd, setShowAdd] = useState(false);
+  const [confirmation, setConfirmation] = useState<ReminderConfirmation | null>(null);
+  const incomingConfirmation = route.params?.reminderConfirmation;
+  useEffect(() => {
+    if (!incomingConfirmation) return;
+    setConfirmation(incomingConfirmation);
+    tabNavigation.setParams({ reminderConfirmation: undefined });
+  }, [incomingConfirmation, tabNavigation]);
   const posting = useRef(false);
   const requestVersion = useRef(0);
   const doses = useMemo(() => [...home.todayDoses].sort((a, b) =>
@@ -116,6 +125,17 @@ export default function TodayScreen() {
             </Pressable>
           </View>
 
+          {confirmation ? <View style={styles.confirmation} accessibilityLiveRegion="polite">
+            <CheckCircle2 size={24} strokeWidth={2} color={colors.completed} style={styles.confirmationIcon} />
+            <View style={styles.confirmationCopy}>
+              <Text style={styles.confirmationTitle}>{confirmation.title}</Text>
+              <Text style={styles.confirmationDetail}>{confirmation.detail}</Text>
+            </View>
+            <Pressable accessibilityRole="button" accessibilityLabel="처리 결과 닫기" onPress={() => setConfirmation(null)} style={styles.confirmationClose}>
+              <X size={18} color={colors.inkSoft} />
+            </Pressable>
+          </View> : null}
+
           <View style={styles.progressCard}>
             <View style={styles.progressTop}>
               <View>
@@ -192,6 +212,12 @@ const styles = StyleSheet.create({
   heroTitle: { color: colors.ink, fontSize: 30, lineHeight: 40, fontWeight: '700', letterSpacing: -0.8, marginTop: 4 },
   addButton: { minHeight: 48, paddingHorizontal: 12, borderRadius: 12, backgroundColor: colors.activeSoft, flexDirection: 'row', alignItems: 'center', gap: 5 },
   addButtonText: { color: colors.active, fontSize: 13, fontWeight: '600' },
+  confirmation: { backgroundColor: colors.completedSoft, borderRadius: 16, padding: 16, paddingRight: 8, marginBottom: 20, flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  confirmationIcon: { marginTop: 6 },
+  confirmationCopy: { flex: 1, minWidth: 0, paddingVertical: 4 },
+  confirmationTitle: { color: colors.ink, fontSize: 16, lineHeight: 24, fontWeight: '600' },
+  confirmationDetail: { color: colors.inkSoft, fontSize: 13, lineHeight: 21, marginTop: 5 },
+  confirmationClose: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', marginTop: -4 },
   progressCard: { backgroundColor: colors.surface, borderRadius: 16, padding: 20, marginBottom: 26 },
   progressTop: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 },
   progressCaption: { color: colors.muted, fontSize: 12, marginBottom: 4 },
