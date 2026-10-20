@@ -14,6 +14,10 @@ public final class ProductImageMetadata {
     private static final Pattern META = Pattern.compile("(?is)<meta\\b[^>]*>");
     private static final Pattern ATTRIBUTE = Pattern.compile("([\\w:-]+)\\s*=\\s*([\"'])(.*?)\\2", Pattern.DOTALL);
     private static final Set<String> OMIT = Set.of("s", "the", "and", "with", "for", "of", "dietary", "supplement", "supplements");
+    private static final Set<String> VARIANT = Set.of("lysinate", "glycinate", "citrate", "oxide", "malate", "threonate",
+        "chelated", "albion", "traacs", "mg", "mcg", "g", "iu", "tablet", "capsule", "softgel", "veg", "vegetarian");
+    private static final Set<String> FORMS = Set.of("lysinate", "glycinate", "citrate", "oxide", "malate", "threonate");
+    private static final Pattern PACKAGE = Pattern.compile("(?i)\\b(\\d{2,3})\\s*(?:veg(?:etable)?\\s*)?(tablets?|capsules?|softgels?)\\b");
     private ProductImageMetadata() { }
 
     public static String extract(ProductImagePageClient.Page page, String brand, String product) {
@@ -22,8 +26,8 @@ public final class ProductImageMetadata {
 
     public static String extract(ProductImagePageClient.Page page, String brand, String product, String label) {
         if (page == null || !ProductImagePageClient.publisher(URI.create(page.url()).getHost())) return "";
-        var packageCount = Pattern.compile("(?i)\\b(\\d{2,3})\\s*(?:veg(?:etable)?\\s*)?(?:tablets?|capsules?|softgels?)\\b").matcher(label);
-        if (packageCount.find()) product = product + " " + packageCount.group(1);
+        var packageCount = PACKAGE.matcher(label);
+        if (packageCount.find()) product = product + " " + packageCount.group(1) + " " + packageCount.group(2);
         var scripts = SCRIPT.matcher(page.html());
         while (scripts.find()) {
             if (!"application/ld+json".equalsIgnoreCase(attributes(scripts.group(1)).get("type"))) continue;
@@ -42,7 +46,7 @@ public final class ProductImageMetadata {
         var uri = URI.create(page.url());
         boolean productPage = metadata.getOrDefault("og:type", "").contains("product")
             || uri.getPath().matches("(?i).*/(products?|pr|p)/.+");
-        if (productPage && matches(metadata.getOrDefault("og:title", ""), brand, product)) {
+        if (productPage && matches(metadata.getOrDefault("og:title", ""), brand, product, page.url())) {
             return resolveImage(page.url(), metadata.getOrDefault("og:image:secure_url", metadata.getOrDefault("og:image", "")));
         }
         return "";
@@ -54,7 +58,7 @@ public final class ProductImageMetadata {
             var type = node.path("@type");
             boolean isProduct = "Product".equals(type.asText()) || (type.isArray() && type.toString().contains("\"Product\""));
             var maker = node.path("brand").isTextual() ? node.path("brand").asText() : node.path("brand").path("name").asText("");
-            if (isProduct && matches(maker + " " + node.path("name").asText(""), brand, product)) {
+            if (isProduct && matches(maker + " " + node.path("name").asText(""), brand, product, url)) {
                 var images = node.path("image");
                 if (images.isArray()) for (var image : images) {
                     var candidate = resolveImage(url, imageText(image));
@@ -87,6 +91,10 @@ public final class ProductImageMetadata {
     }
 
     static boolean matches(String title, String brand, String product) {
+        return matches(title, brand, product, "");
+    }
+
+    static boolean matches(String title, String brand, String product, String productUrl) {
         var normalizedTitle = normalize(title);
         var normalizedBrand = normalize(brand);
         normalizedBrand = switch (normalizedBrand.replace(" ", "")) {
@@ -99,18 +107,29 @@ public final class ProductImageMetadata {
             || !normalizedTitle.replace(" ", "").contains(normalizedBrand.replace(" ", ""))) return false;
         var terms = Arrays.stream(normalize(product).split(" ")).filter(term -> !term.isBlank() && !OMIT.contains(term)).distinct().toList();
         if (terms.isEmpty()) return false;
-        var words = new HashSet<>(Arrays.asList(normalizedTitle.split(" ")));
-        // Strength/count/form words present in the identified name must never be silently discarded.
-        if (terms.stream().filter(term -> term.matches(".*[0-9].*") || Set.of("citrate", "glycinate", "oxide", "malate", "threonate").contains(term))
-            .anyMatch(term -> !words.contains(term))) return false;
-        return terms.stream().filter(words::contains).count() == terms.size();
+        var titleWords = new HashSet<>(Arrays.asList(normalizedTitle.split(" ")));
+        // Manufacturers shorten the heading but retain the complete formulation in the canonical product URL.
+        // Core product words must still be in the title; only explicit variant details may come from its URL.
+        String path;
+        try { path = URI.create(productUrl).getPath(); } catch (Exception ignored) { path = ""; }
+        var words = new HashSet<>(Arrays.asList(normalize(normalizedTitle + " " + path).split(" ")));
+        for (var term : terms) {
+            if (!words.contains(term)) return false;
+            if (!VARIANT.contains(term) && !term.matches("[0-9]+") && !titleWords.contains(term)) return false;
+        }
+        var expectedCount = PACKAGE.matcher(product);
+        var actualCount = PACKAGE.matcher(title);
+        if (expectedCount.find() && actualCount.find() && !expectedCount.group(1).equals(actualCount.group(1))) return false;
+        var wantedForms = terms.stream().filter(FORMS::contains).toList();
+        return wantedForms.isEmpty() || titleWords.stream().filter(FORMS::contains).allMatch(wantedForms::contains);
     }
 
     private static String normalize(String value) {
         return Normalizer.normalize(value == null ? "" : decode(value), Normalizer.Form.NFKC)
             .toLowerCase(Locale.ROOT).replaceAll("['’]", "")
             .replaceAll("(?<=\\p{N})(?=\\p{L})|(?<=\\p{L})(?=\\p{N})", " ")
-            .replaceAll("[^\\p{L}\\p{N}]+", " ").trim().replaceAll("\\s+", " ");
+            .replaceAll("[^\\p{L}\\p{N}]+", " ").trim().replaceAll("\\s+", " ")
+            .replaceAll("\\btablets\\b", "tablet").replaceAll("\\bcapsules\\b", "capsule").replaceAll("\\bsoftgels\\b", "softgel");
     }
 
     private static Map<String, String> attributes(String value) {
