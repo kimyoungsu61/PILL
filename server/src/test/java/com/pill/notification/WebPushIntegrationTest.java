@@ -107,7 +107,9 @@ class WebPushIntegrationTest {
         assertThat(service.state(principal,second.id()).reminders()).isEmpty();
         long id=store.activeReminderIds(clock.instant()).getFirst();dispatcher.dispatch(id);verify(sender,never()).send(any(),any());
         when(clock.instant()).thenReturn(Instant.parse("2026-10-07T00:00:10Z"));dispatcher.dispatch(id);dispatcher.dispatch(id);
-        verify(sender,times(1)).send(any(),argThat(payload->payload instanceof Map<?,?> map && "복용 시간이에요".equals(map.get("title"))));
+        verify(sender,times(1)).send(any(),argThat(payload->payload instanceof Map<?,?> map
+            && "마그네슘 챙기실 시간이에요 💊".equals(map.get("title"))
+            && "드신 뒤 PILL에서 체크해 주세요.".equals(map.get("body"))));
         assertThat(store.delivery(id,LocalDate.of(2026,10,7)).status()).isEqualTo("SENT");
     }
     @Test void retriesTransientFailureWithoutDuplicateSuccessfulDelivery() throws Exception {
@@ -285,7 +287,8 @@ class WebPushIntegrationTest {
         service.setTimes(principal,state.id(),product.getId(),List.of("23:59"));
         at("2026-10-07T14:59:10Z");scheduler.tick();at("2026-10-07T15:00:10Z");scheduler.tick();scheduler.tick();
         verify(sender,times(2)).send(any(),any());
-        verify(sender).send(any(),argThat(payload -> payload instanceof Map<?,?> map && "복용 기록을 확인해 주세요".equals(map.get("title"))
+        verify(sender).send(any(),argThat(payload -> payload instanceof Map<?,?> map && "마그네슘, 챙겨 드셨나요? 💊".equals(map.get("title"))
+            && "드셨다면 PILL에서 체크해 주세요.".equals(map.get("body"))
             && ((Map<?,?>)map.get("data")).get("doseDate").equals("2026-10-07")));
         var result=followUps.action(principal,state.id(),product.getId(),LocalDate.of(2026,10,7),"23:59","TAKEN");
         assertThat(result.status()).isEqualTo("TAKEN");
