@@ -223,7 +223,7 @@ class WebPushIntegrationTest {
         verify(sender,times(3)).send(any(),any());
         var payloads=org.mockito.ArgumentCaptor.forClass(Object.class);
         verify(sender,times(3)).send(any(),payloads.capture());
-        assertThat(payloads.getAllValues().stream().map(value -> ((Map<?,?>)value).get("tag")).toList())
+        assertThat(payloads.getAllValues().stream().map(value -> (String)((Map<?,?>)value).get("tag")).toList())
             .containsExactly("pill-dose-"+id+"-2026-10-07", "pill-dose-"+id+"-2026-10-07-follow-1", "pill-dose-"+id+"-2026-10-07-follow-2");
         assertThat(followUpStore.find(id,LocalDate.of(2026,10,7)).sentCount()).isEqualTo(2);
         assertThat(followUpStore.due(clock.instant())).isEmpty();
