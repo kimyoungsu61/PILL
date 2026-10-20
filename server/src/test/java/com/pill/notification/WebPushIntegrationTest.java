@@ -221,6 +221,10 @@ class WebPushIntegrationTest {
         at("2026-10-07T00:02:10Z");scheduler.tick();scheduler.tick();
         at("2026-10-07T00:03:10Z");scheduler.tick();
         verify(sender,times(3)).send(any(),any());
+        var payloads=org.mockito.ArgumentCaptor.forClass(Object.class);
+        verify(sender,times(3)).send(any(),payloads.capture());
+        assertThat(payloads.getAllValues().stream().map(value -> ((Map<?,?>)value).get("tag")).toList())
+            .containsExactly("pill-dose-"+id+"-2026-10-07", "pill-dose-"+id+"-2026-10-07-follow-1", "pill-dose-"+id+"-2026-10-07-follow-2");
         assertThat(followUpStore.find(id,LocalDate.of(2026,10,7)).sentCount()).isEqualTo(2);
         assertThat(followUpStore.due(clock.instant())).isEmpty();
     }
@@ -327,6 +331,10 @@ class WebPushIntegrationTest {
         when(sender.send(any(),any())).thenReturn(503,201);
         at("2026-10-07T00:01:10Z");scheduler.tick();scheduler.tick();verify(sender,times(2)).send(any(),any());
         at("2026-10-07T00:01:40Z");scheduler.tick();scheduler.tick();verify(sender,times(3)).send(any(),any());
+        var retryPayloads=org.mockito.ArgumentCaptor.forClass(Object.class);
+        verify(sender,times(3)).send(any(),retryPayloads.capture());
+        assertThat(((Map<?,?>)retryPayloads.getAllValues().get(1)).get("tag"))
+            .isEqualTo(((Map<?,?>)retryPayloads.getAllValues().get(2)).get("tag"));
         assertThat(followUpStore.find(id,LocalDate.of(2026,10,7)).sentCount()).isEqualTo(1);
         followUps.action(principal,state.id(),product.getId(),LocalDate.of(2026,10,7),"09:00","SNOOZE");
         when(sender.send(any(),any())).thenReturn(410);at("2026-10-07T00:16:40Z");scheduler.tick();
