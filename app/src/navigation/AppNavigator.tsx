@@ -28,6 +28,7 @@ import SignupScreen from '../screens/SignupScreen';
 import SupplementDetailScreen from '../screens/SupplementDetailScreen';
 import SupplementsScreen from '../screens/SupplementsScreen';
 import TodayScreen from '../screens/TodayScreen';
+import type { ReminderConfirmation } from '../notifications/reminderConfirmation';
 import { colors, spacing } from '../theme';
 
 export type RootStackParamList = {
@@ -46,7 +47,7 @@ export type RootStackParamList = {
 };
 
 export type MainTabParamList = {
-  Today: undefined;
+  Today: { reminderConfirmation?: ReminderConfirmation } | undefined;
   Supplements: undefined;
   Menu: undefined;
 };
