@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Switch, Text, useWindowDimensions, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Bell, BellRing, Plus, ShieldCheck } from 'lucide-react-native';
+import { Bell, Plus, ShieldCheck } from 'lucide-react-native';
 import { apiRequest } from '../api/client';
 import type { SupplementDetailResponse, SupplementSummary } from '../api/types';
 import { useAuth } from '../auth/AuthContext';
@@ -12,7 +12,7 @@ import FollowUpSettingsCard from '../components/FollowUpSettingsCard';
 import { defaultFollowUpSettings, saveFollowUpSettings } from '../notifications/webPush';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 import { parseDoseTimes } from '../notifications/doseReminderNotifications';
-import { connectWebPush, disconnectWebPush, getWebPushConfig, getWebPushState, prepareWebPush, saveWebReminderTimes, sendWebPushTest, webPushError, webPushSupport, type WebPushState, type WebPushConfig, type WebPushPreparation } from '../notifications/webPush';
+import { connectWebPush, disconnectWebPush, getWebPushConfig, getWebPushState, prepareWebPush, saveWebReminderTimes, webPushError, webPushSupport, type WebPushState, type WebPushConfig, type WebPushPreparation } from '../notifications/webPush';
 import { colors, radius } from '../theme';
 import { contentRailWidth } from '../utils/responsiveLayout';
 
@@ -79,10 +79,8 @@ export default function WebNotificationSettingsScreen({ navigation }: Props) {
       </RitualSurface> : support === 'supported' && config?.enabled ? <RitualSurface style={styles.card}>
         <ShieldCheck color={colors.active} size={26} /><Text style={styles.cardTitle}>{connected ? '이 기기로 알림을 받을 수 있어요' : '복용 시간을 놓치지 않도록'}</Text>
         <Text style={styles.body}>{connected ? '기기에 설정된 시간대를 기준으로 알려드려요. 다른 기기의 알림 설정에는 영향을 주지 않아요.' : '알림을 허용하고 받을 복용 시간을 선택해 주세요.'}</Text>
-        {!connected ? <RitualAction fullWidth label="알림 켜기" icon={<Bell color={colors.primaryText} size={19} />} disabled={!prepared.current} loading={busy} onPress={connect} /> : <>
-          <RitualAction fullWidth label="테스트 알림 보내기" icon={<BellRing color={colors.primaryText} size={19} />} loading={busy} onPress={() => void action(async () => { await sendWebPushTest(token!, state!); setMessage('전송 요청을 보냈어요. 잠금 화면에서 알림을 확인해 주세요.'); })} />
-          <RitualAction fullWidth label="이 기기 알림 끄기" tone="secondary" disabled={busy} onPress={() => void action(async () => { await disconnectWebPush(token!, state); prepared.current = await prepareWebPush(); setState(null); setMessage('이 기기의 복용 알림을 껐어요.'); })} />
-        </>}
+        {!connected ? <RitualAction fullWidth label="알림 켜기" icon={<Bell color={colors.primaryText} size={19} />} disabled={!prepared.current} loading={busy} onPress={connect} /> :
+          <RitualAction fullWidth label="이 기기 알림 끄기" tone="secondary" disabled={busy} onPress={() => void action(async () => { await disconnectWebPush(token!, state); prepared.current = await prepareWebPush(); setState(null); setMessage('이 기기의 복용 알림을 껐어요.'); })} />}
       </RitualSurface> : null}
       {error ? <Text accessibilityLiveRegion="polite" style={styles.error}>{error}</Text> : null}
       {message ? <Text accessibilityLiveRegion="polite" style={styles.message}>{message}</Text> : null}

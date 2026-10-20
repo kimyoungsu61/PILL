@@ -72,9 +72,6 @@ export async function connectWebPush(token: string, key: string, prepared: WebPu
 export function saveWebReminderTimes(token: string, state: WebPushState, supplementId: number, times: string[]) {
   return apiRequest<WebPushState>('/api/web-push/subscriptions/' + encodeURIComponent(state.id) + '/reminders/' + supplementId, { method: 'PUT', body: JSON.stringify({ times }) }, token);
 }
-export function sendWebPushTest(token: string, state: WebPushState) {
-  return apiRequest<void>('/api/web-push/subscriptions/' + encodeURIComponent(state.id) + '/test', { method: 'POST' }, token);
-}
 export function saveFollowUpSettings(token: string, state: WebPushState, settings: FollowUpSettings) {
   return apiRequest<WebPushState>('/api/web-push/subscriptions/' + encodeURIComponent(state.id) + '/follow-up', { method: 'PUT', body: JSON.stringify(settings) }, token);
 }
