@@ -17,7 +17,7 @@ import java.util.HashSet;
 
 @Service
 public class ProductImageService {
-    private static final int LOOKUP_VERSION = 3;
+    private static final int LOOKUP_VERSION = 4;
     private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(ProductImageService.class);
     private static final ObjectMapper JSON = new ObjectMapper();
     private final UserSupplementRepository supplements;
@@ -71,7 +71,11 @@ public class ProductImageService {
             result = matchedResearchImage(stored.path("research"), identity, seen);
             if (result == null) result = matchedResearchImage(stored.path("guideResearch"), identity, seen);
             if (result == null) {
-                try { result = find(gemini.productImageSources(identity), identity, seen); }
+                try {
+                    var sources = gemini.productImageSources(identity);
+                    LOG.info("Product photo search supplement={} groundedSources={}", supplementId, sources.size());
+                    result = find(sources, identity, seen);
+                }
                 catch (RuntimeException exception) {
                     LOG.warn("Product photo search unavailable supplement={} errorType={}", supplementId, exception.getClass().getSimpleName());
                     result = empty("UNAVAILABLE");
@@ -88,7 +92,7 @@ public class ProductImageService {
     }
 
     private Result matchedResearchImage(JsonNode research, ObjectNode identity, HashSet<String> seen) {
-        return "CANDIDATE".equals(research.path("status").asText()) ? find(research.path("sources"), identity, seen) : null;
+        return find(research.path("sources"), identity, seen);
     }
 
     private Result find(JsonNode sources, ObjectNode identity, HashSet<String> seen) {
@@ -101,6 +105,7 @@ public class ProductImageService {
             var page = pages.read(url);
             var image = ProductImageMetadata.extract(page, identity.path("brandName").asText(),
                 identity.path("productName").asText(), identity.path("originalLabelText").asText(""));
+            if (page != null) LOG.info("Product photo page host={} matched={}", java.net.URI.create(page.url()).getHost(), !image.isBlank());
             if (!image.isBlank()) return new Result("FOUND", image, page.url(), clock.instant().toString());
         }
         return null;

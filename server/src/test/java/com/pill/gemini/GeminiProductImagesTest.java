@@ -12,6 +12,20 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 class GeminiProductImagesTest {
     private static final String ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
 
+    @Test void searchLinksRemainAvailableWhenProseHasAPreambleAndNoTextCitationOffsets() {
+        var builder = RestClient.builder();
+        var server = MockRestServiceServer.bindTo(builder).build();
+        server.expect(requestTo(ENDPOINT)).andRespond(withSuccess("""
+            {"candidates":[{"content":{"parts":[{"text":"The product report follows. MATCHED: Nanowell Hovenia-Rx."}]},
+              "groundingMetadata":{"groundingChunks":[{"web":{"uri":"https://mynanowell.com/products/hovenia-rx-milkthistle-tablet","title":"Nanowell"}}]}}]}
+            """, MediaType.APPLICATION_JSON));
+        var json = new ObjectMapper();
+        var client = new GeminiClient(new GeminiProperties("test", ENDPOINT), builder.build(), json, url -> "");
+        assertThat(client.productImageSources(json.createObjectNode()).get(0).path("uri").asText())
+            .isEqualTo("https://mynanowell.com/products/hovenia-rx-milkthistle-tablet");
+        server.verify();
+    }
+
     @Test void photoLookupUsesSearchButAcceptsOnlyProviderGroundingLinks() {
         var builder = RestClient.builder();
         var server = MockRestServiceServer.bindTo(builder).build();

@@ -12,6 +12,7 @@ import java.util.Set;
 /** Bounded, credential-free reads of public product pages. No arbitrary URL proxy. */
 @Component
 public class ProductImagePageClient {
+    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(ProductImagePageClient.class);
     private static final Set<String> PUBLISHERS = Set.of(
         "doctorsbest.com", "drbvitamins.com", "nowfoods.com", "solgar.com", "thorne.com",
         "lifeextension.com", "jarrow.com", "jarrowformulas.com", "naturesway.com", "naturemade.com",
@@ -30,11 +31,15 @@ public class ProductImagePageClient {
             for (int redirect = 0; redirect < 4; redirect++) {
                 boolean google = "vertexaisearch.cloud.google.com".equals(uri.getHost())
                     && uri.getPath().startsWith("/grounding-api-redirect/");
-                if (!https(uri) || (!google && !publisher(uri.getHost()))) return null;
+                if (!https(uri) || (!google && !publisher(uri.getHost()))) {
+                    LOG.info("Product photo page rejected host={}", uri.getHost());
+                    return null;
+                }
                 var response = client.send(HttpRequest.newBuilder(uri).timeout(Duration.ofSeconds(5))
                     .header("User-Agent", "PILL/1.0 Product image lookup")
                     .header("Accept", "text/html").GET().build(), HttpResponse.BodyHandlers.ofInputStream());
                 try (var input = response.body()) {
+                    LOG.info("Product photo page response host={} status={}", uri.getHost(), response.statusCode());
                     if (response.statusCode() >= 300 && response.statusCode() < 400) {
                         var location = response.headers().firstValue("location").orElse("");
                         if (location.isBlank()) return null;
