@@ -28,6 +28,7 @@ import SignupScreen from '../screens/SignupScreen';
 import SupplementDetailScreen from '../screens/SupplementDetailScreen';
 import SupplementsScreen from '../screens/SupplementsScreen';
 import TodayScreen from '../screens/TodayScreen';
+import GardenScreen from '../screens/GardenScreen';
 import type { ReminderConfirmation } from '../notifications/reminderConfirmation';
 import type { RegistrationReminders } from '../notifications/registrationReminders';
 import { colors, spacing } from '../theme';
@@ -43,6 +44,7 @@ export type RootStackParamList = {
   DoseReminder: { supplementId: number; doseDate: string; doseTime: string };
   NotificationSettings: undefined;
   DoseHistory: undefined;
+  Garden: undefined;
   ScanHistory: undefined;
   ExportData: undefined;
 };
@@ -228,6 +230,7 @@ export default function AppNavigator() {
               <Stack.Screen name="DoseReminder" component={DoseReminderScreen} options={{ title: '복용 알림' }} />
               <Stack.Screen name="NotificationSettings" component={NotificationSettingsScreen} options={{ title: '알림 설정' }} />
               <Stack.Screen name="DoseHistory" component={DoseHistoryScreen} options={{ title: '복용 기록' }} />
+              <Stack.Screen name="Garden" component={GardenScreen} options={{ title: '나의 정원' }} />
               <Stack.Screen name="ScanHistory" component={ScanHistoryScreen} options={{ title: '스캔 기록' }} />
               <Stack.Screen name="ExportData" component={ExportDataScreen} options={{ title: '내보내기' }} />
             </>

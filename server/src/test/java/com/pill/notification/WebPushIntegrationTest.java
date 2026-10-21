@@ -49,6 +49,7 @@ class WebPushIntegrationTest {
     @Autowired MockMvc mvc;@Autowired DataSource dataSource;@Autowired ObjectMapper json;
     @Autowired WebPushService service;@Autowired WebPushStore store;@Autowired WebPushDispatcher dispatcher;@Autowired WebPushScheduler scheduler;
     @Autowired WebPushFollowUpStore followUpStore;@Autowired WebPushFollowUps followUps;
+    @Autowired com.pill.garden.GardenService garden;
     @Autowired AuthSessionService sessions;@Autowired UserRepository users;@Autowired SupplementScanRepository scans;
     @Autowired UserSupplementRepository supplements;@Autowired DoseLogRepository logs;@Autowired SupplementService supplementService;
     @Autowired jakarta.persistence.EntityManager entityManager;
@@ -294,6 +295,7 @@ class WebPushIntegrationTest {
         assertThat(result.status()).isEqualTo("TAKEN");
         assertThat(logs.findBySupplementIdAndDoseDateAndDoseTime(product.getId(),LocalDate.of(2026,10,7),"23:59")).isPresent();
         assertThat(logs.findBySupplementIdAndDoseDate(product.getId(),LocalDate.of(2026,10,8))).isEmpty();
+        assertThat(garden.state(user.getId()).totalStamps()).isZero();
     }
     @Test void explicitSnoozeReplacesTheAutomaticTimeAndDoesNotMarkTheDoseTaken() throws Exception {
         var state=followEnabled("follow-snooze",1,1);var id=initial(state);
@@ -349,6 +351,20 @@ class WebPushIntegrationTest {
         verify(sender,times(1)).send(any(),any());
         assertThat(followUpStore.due(clock.instant())).isEmpty();
     }
+    @Test void notificationCompletionEarnsGardenStampWithoutOpeningHomeAndIsIdempotent() throws Exception {
+        var state=connect("garden-notification");
+        supplementService.logDose(user.getId(),product.getId(),new com.pill.supplement.dto.DoseLogRequest("TAKEN","","19:00"));
+        assertThat(garden.state(user.getId()).totalStamps()).isZero();
+        initial(state);
+        var date=LocalDate.of(2026,10,7);
+        followUps.action(principal,state.id(),product.getId(),date,"09:00","TAKEN");
+        assertThat(garden.state(user.getId()).totalStamps()).isEqualTo(1);
+        followUps.action(principal,state.id(),product.getId(),date,"09:00","TAKEN");
+        assertThat(garden.state(user.getId()).totalStamps()).isEqualTo(1);
+        supplementService.clearDoseLog(user.getId(),product.getId(),"09:00");
+        assertThat(garden.state(user.getId()).totalStamps()).isZero();
+    }
+
     private WebPushService.State followEnabled(String suffix,int minutes,int count) throws Exception {
         var state=connect(suffix);service.setFollowUp(principal,state.id(),new FollowUpSettings(true,minutes,count,false,"22:00","08:00"));return state;
     }

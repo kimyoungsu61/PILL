@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pill.gemini.GeminiClient;
+import com.pill.garden.GardenService;
 import com.pill.model.DoseSchedule;
 import com.pill.model.SupplementScan;
 import com.pill.model.UserSupplement;
@@ -42,19 +43,22 @@ public class ScanService {
     private final SupplementScanRepository scans;
     private final UserSupplementRepository supplements;
     private final DoseScheduleRepository doseSchedules;
+    private final GardenService garden;
 
     public ScanService(
         GeminiClient gemini,
         UserRepository users,
         SupplementScanRepository scans,
         UserSupplementRepository supplements,
-        DoseScheduleRepository doseSchedules
+        DoseScheduleRepository doseSchedules,
+        GardenService garden
     ) {
         this.gemini = gemini;
         this.users = users;
         this.scans = scans;
         this.supplements = supplements;
         this.doseSchedules = doseSchedules;
+        this.garden = garden;
     }
 
     @Transactional
@@ -170,6 +174,7 @@ public class ScanService {
         if (request == null) {
             throw new IllegalArgumentException("confirmation is required");
         }
+        garden.prepareChange(userId);
         var scan = findUserScan(userId, scanId);
         var doseTimes = doseTimes(request);
         var supplement = new UserSupplement(

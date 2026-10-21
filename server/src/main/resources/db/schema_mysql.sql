@@ -6,6 +6,23 @@ CREATE TABLE IF NOT EXISTS users (
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS garden_day (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT NOT NULL,
+  stamp_date DATE NOT NULL,
+  earned BIT NOT NULL DEFAULT 0,
+  completion_keys TEXT NOT NULL,
+  CONSTRAINT fk_garden_day_user FOREIGN KEY (user_id) REFERENCES users(id),
+  CONSTRAINT uq_garden_day UNIQUE (user_id, stamp_date)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS garden_style (
+  user_id BIGINT PRIMARY KEY,
+  pot VARCHAR(20) NOT NULL DEFAULT 'clay',
+  stamp VARCHAR(20) NOT NULL DEFAULT 'leaf',
+  CONSTRAINT fk_garden_style_user FOREIGN KEY (user_id) REFERENCES users(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS auth_session (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
   user_id BIGINT NOT NULL,

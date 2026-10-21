@@ -1,6 +1,7 @@
 package com.pill.notification;
 
 import com.pill.auth.SessionPrincipal;
+import com.pill.garden.GardenService;
 import com.pill.model.DoseLog;
 import com.pill.repository.DoseLogRepository;
 import com.pill.repository.UserSupplementRepository;
@@ -23,11 +24,13 @@ public class WebPushFollowUps {
     private final Clock clock;
     private final DoseLogRepository logs;
     private final UserSupplementRepository supplements;
+    private final GardenService garden;
 
     public WebPushFollowUps(WebPushStore store, WebPushFollowUpStore followUps, WebPushSender sender,
-        Clock clock, DoseLogRepository logs, UserSupplementRepository supplements) {
+        Clock clock, DoseLogRepository logs, UserSupplementRepository supplements, GardenService garden) {
         this.store = store; this.followUps = followUps; this.sender = sender; this.clock = clock;
         this.logs = logs; this.supplements = supplements;
+        this.garden = garden;
     }
 
     public record DoseView(long supplementId, String name, LocalDate doseDate, String doseTime,
@@ -110,12 +113,14 @@ public class WebPushFollowUps {
             var previous = followUps.find(reminder.id(), date);
             schedule(reminder, date, next, previous == null ? 0 : previous.sentCount(), "SNOOZE", settings);
         } else if ("TAKEN".equals(action) || "SKIPPED".equals(action)) {
+            garden.prepareChange(principal.userId());
             // A repeated tap must not change a completed occurrence into a different state.
             if (current.status().isBlank()) {
                 var supplement = supplements.findByIdAndUserId(supplementId, principal.userId()).orElseThrow();
                 var log = logs.findBySupplementIdAndDoseDateAndDoseTime(supplementId, date, time)
                     .orElseGet(() -> new DoseLog(supplement, date, time, action, ""));
                 log.update(action, log.getMemo()); logs.saveAndFlush(log);
+                garden.recordChanged(principal.userId(), supplementId, date, time, action, "TAKEN".equals(action));
             }
             store.cancelFollowUps(supplementId, date, time);
         } else throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "복용 완료, 미루기 또는 건너뛰기를 선택해 주세요.");

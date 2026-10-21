@@ -1,5 +1,6 @@
 package com.pill.supplement;
 
+import com.pill.garden.GardenService;
 import com.pill.notification.WebPushService;
 import com.pill.notification.WebPushStore;
 import com.pill.model.DoseLog;
@@ -43,6 +44,7 @@ public class SupplementService {
     private final SupplementWarningRepository supplementWarnings;
     private final WebPushStore webPushStore;
     private final Clock clock;
+    private final GardenService garden;
 
     public SupplementService(
         UserSupplementRepository supplements,
@@ -52,7 +54,8 @@ public class SupplementService {
         DoseScheduleRepository doseSchedules,
         SupplementWarningRepository supplementWarnings,
         WebPushStore webPushStore,
-        Clock clock
+        Clock clock,
+        GardenService garden
     ) {
         this.supplements = supplements;
         this.users = users;
@@ -62,6 +65,7 @@ public class SupplementService {
         this.supplementWarnings = supplementWarnings;
         this.webPushStore = webPushStore;
         this.clock = clock;
+        this.garden = garden;
     }
 
     public static boolean isValidDoseStatus(String status) {
@@ -70,7 +74,7 @@ public class SupplementService {
 
     @Transactional(readOnly = true)
     public HomeResponse home(Long userId) {
-        var userSupplements = supplements.findTop20ByUserIdOrderByCreatedAtDesc(userId);
+        var userSupplements = supplements.findByUserIdOrderByCreatedAtDesc(userId);
         var summaries = userSupplements.stream()
             .map(this::toSummary)
             .toList();
@@ -94,7 +98,7 @@ public class SupplementService {
 
     @Transactional(readOnly = true)
     public List<HomeResponse.SupplementSummary> list(Long userId) {
-        return supplements.findTop20ByUserIdOrderByCreatedAtDesc(userId).stream()
+        return supplements.findByUserIdOrderByCreatedAtDesc(userId).stream()
             .map(this::toSummary)
             .toList();
     }
@@ -232,23 +236,29 @@ public class SupplementService {
             throw new IllegalArgumentException("invalid dose status");
         }
 
+        garden.prepareChange(userId);
         var supplement = findUserSupplement(userId, supplementId);
         var today = LocalDate.now(clock);
         var doseTime = normalizeDoseTime(request.doseTime(), supplement);
-        var doseLog = doseLogs.findBySupplementIdAndDoseDateAndDoseTime(supplement.getId(), today, doseTime)
-            .orElseGet(() -> new DoseLog(supplement, today, doseTime, request.status(), request.memo()));
+        var existing = doseLogs.findBySupplementIdAndDoseDateAndDoseTime(supplement.getId(), today, doseTime);
+        boolean newlyTaken = "TAKEN".equals(request.status()) && existing.map(log -> !"TAKEN".equals(log.getStatus())).orElse(true);
+        var doseLog = existing.orElseGet(() -> new DoseLog(supplement, today, doseTime, request.status(), request.memo()));
         doseLog.update(request.status(), request.memo());
-        doseLogs.save(doseLog);
+        doseLogs.saveAndFlush(doseLog);
+        garden.recordChanged(userId, supplementId, today, doseTime, request.status(), newlyTaken);
         webPushStore.cancelFollowUps(supplementId, today, doseTime);
     }
 
     @Transactional
     public void clearDoseLog(Long userId, Long supplementId, String requestedDoseTime) {
+        garden.prepareChange(userId);
         var supplement = findUserSupplement(userId, supplementId);
         var today = LocalDate.now(clock);
         var doseTime = normalizeDoseTime(requestedDoseTime, supplement);
         doseLogs.findBySupplementIdAndDoseDateAndDoseTime(supplement.getId(), today, doseTime)
             .ifPresent(doseLogs::delete);
+        doseLogs.flush();
+        garden.recordChanged(userId, supplementId, today, doseTime, "", false);
     }
 
     @Transactional
@@ -257,6 +267,7 @@ public class SupplementService {
             throw new IllegalArgumentException("product name is required");
         }
         var times = normalizeRequestedDoseTimes(new UpdateDoseTimesRequest(request.doseTimes()));
+        garden.prepareChange(userId);
         var user = users.findById(userId)
             .orElseThrow(() -> new IllegalArgumentException("user not found"));
         var scan = scans.save(new SupplementScan(user, "{\"source\":\"manual\"}", "MANUAL"));
@@ -290,6 +301,7 @@ public class SupplementService {
     @Transactional
     public void updateDoseTimes(Long userId, Long supplementId, UpdateDoseTimesRequest request) {
         var times = normalizeRequestedDoseTimes(request);
+        garden.prepareChange(userId);
         var supplement = findUserSupplement(userId, supplementId);
         var previousTimes = WebPushService.times(supplement.getConfirmedDoseTime());
         supplement.updateConfirmedDoseTime(String.join(",", times));
@@ -302,6 +314,7 @@ public class SupplementService {
 
     @Transactional
     public void deleteSupplement(Long userId, Long supplementId) {
+        garden.prepareChange(userId);
         var supplement = findUserSupplement(userId, supplementId);
         var scan = supplement.getScan();
         supplementWarnings.deleteBySupplementId(supplement.getId());

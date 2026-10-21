@@ -41,7 +41,7 @@ import static org.assertj.core.api.SoftAssertions.assertSoftly;
 import static org.assertj.core.api.Assertions.tuple;
 
 @DataJpaTest
-@Import({SupplementService.class, WebPushStore.class, SupplementServiceTest.FixedClockConfiguration.class})
+@Import({SupplementService.class, com.pill.garden.GardenService.class, WebPushStore.class, SupplementServiceTest.FixedClockConfiguration.class})
 @Sql({"/db/mysql_mode.sql", "/db/web_push.sql"})
 @TestPropertySource(properties = "spring.jpa.hibernate.ddl-auto=create-drop")
 class SupplementServiceTest {
