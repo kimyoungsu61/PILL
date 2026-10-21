@@ -53,3 +53,21 @@ if (!formattedToday.startsWith('오늘 ') || !formattedToday.includes('10:20')) 
 }
 
 console.log('ScanHistoryScreen helper contract passed.');
+
+const alcoholEntry: ScanHistoryEntry = { ...baseEntry, recognition: {
+  category: 'ALCOHOL', displayName: '참이슬 소주', confidence: 0.98, messageKo: '', registrationAllowed: false,
+} };
+if (scanHistoryStatus(alcoholEntry).label !== '인식 결과'
+  || scanHistoryStatus(alcoholEntry).action !== '결과 보기'
+  || scanHistoryName(alcoholEntry) !== '참이슬 소주') {
+  throw Error('Nonsupplement history should show the identified target without suggesting supplement registration.');
+}
+const unknownEntry: ScanHistoryEntry = { ...baseEntry, recognition: {
+  category: 'UNKNOWN', displayName: '비타민 추측', confidence: 0.3, messageKo: '', registrationAllowed: false,
+} };
+if (scanHistoryStatus(unknownEntry).label !== '사진 확인 필요' || scanHistoryName(unknownEntry).includes('비타민')) {
+  throw Error('Uncertain history must ask for a clearer photo without asserting a guessed product.');
+}
+if (scanHistoryStatus({ ...alcoholEntry, saved: true }).label !== '보관함 저장됨') {
+  throw Error('Existing saved records must retain their saved status.');
+}

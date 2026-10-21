@@ -9,6 +9,7 @@
 - 복용 완료·취소와 복용 기록 관리
 - 홈 화면에 설치하는 웹 앱과 복용 알림
 - Gemini 기반 제품 정보와 복용 안내
+- 촬영 대상 구분과 비영양제 안내, 영양제로 확인된 분석 결과만 등록
 - 검색으로 확인한 제품 대표사진을 오늘의 복용·영양제 목록에 표시
 
 ## 구성
@@ -73,6 +74,16 @@ Brevo 무료 가입 → 본인 이메일 확인 → Settings의 Senders에서 �
 변수가 없으면 계정 조회·탈퇴는 동작하고, 인증·복구 화면에는 준비 중 안내가 표시됩니다. 메일 요청을 성공한 것처럼 표시하지 않습니다. 메일 전송은 DB 커밋 후 제한된 작업 큐에서 진행하고, 발송 실패 시 해당 인증번호만 폐기합니다. 수신 이메일·인증번호·비밀번호·API 키·제공사 응답 본문을 로그에 남기지 않습니다.
 
 API: `GET /api/account/profile`, `POST /api/account/email-verification/request`, `POST /api/account/email-verification/confirm`, `DELETE /api/account`. 로그인 없이 `GET /api/auth/account-config`, `POST /api/auth/password-reset/request`, `POST /api/auth/password-reset/confirm`을 사용할 수 있습니다. 새 메일 테이블은 반복 실행 가능한 `db/account_email.sql`에서 추가하고 기존 세션·복용 기록·알림 키를 보존합니다.
+
+## 촬영 대상 확인
+
+첫 이미지 분석에서 촬영한 중심 대상의 이름과 종류를 먼저 확인합니다. 영양제·주류·음료·식품·의약품·기타·미확인을 구분하며, 배경의 다른 제품이나 포장 모양만으로 영양제라고 판단하지 않도록 요청합니다. 흐린 사진, 여러 대상, 서로 다른 제품의 사진은 추가 촬영이 필요할 수 있습니다. 이 구분은 AI의 추정이며 항상 정확한 식별을 보장하지 않습니다.
+
+술이나 음료 등은 대상에 맞는 짧은 안내와 다시 촬영하기를 보여주고, 영양제 성분·복용 시간 입력은 표시하지 않습니다. 제로·무카페인 음료 등에서 당·카페인 함유를 임의로 단정하거나 함량·음주량을 만들어내지 않습니다. 비영양제와 미확인 결과도 분석 이력으로 보관합니다.
+
+서버는 저장된 최초 분석 결과를 기준으로 등록 가능 여부를 계산합니다. 유효한 인식 정보가 있고 영양제로 분류된 결과만 등록할 수 있으며, 정보 수정이나 클라이언트 요청으로 이 제한을 우회할 수 없습니다. 이전에 분석했지만 대상 구분이 없는 결과는 다시 촬영해야 합니다. 이미 등록된 영양제와 별도의 수동 등록에는 영향을 주지 않습니다.
+
+참고: [Gemini 이미지 이해](https://ai.google.dev/gemini-api/docs/image-understanding), [구조화된 출력](https://ai.google.dev/gemini-api/docs/structured-output), [WHO 알코올 안내](https://www.who.int/news-room/fact-sheets/detail/alcohol).
 
 ## 제품 대표사진
 

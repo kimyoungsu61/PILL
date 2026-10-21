@@ -42,6 +42,7 @@ class ScanServiceTest {
         var user = users.save(new User("scan@example.com", "hash"));
         when(gemini.analyzeLabel(any(byte[].class), eq("image/png"), any(byte[].class), eq("image/jpeg"))).thenReturn("""
             {
+              "recognition":{"category":"SUPPLEMENT","displayName":"영양제","confidence":0.99,"messageKo":"영양제로 확인했어요."},
               "brandName": "Healthy Labs",
               "productName": "Morning Vitamin",
               "suggestedUseOriginal": "Take one tablet daily.",
@@ -79,6 +80,7 @@ class ScanServiceTest {
         var user = users.save(new User("front-only-scan@example.com", "hash"));
         when(gemini.analyzeLabel(any(byte[].class), eq("image/png"), isNull(), isNull())).thenReturn("""
             {
+              "recognition":{"category":"SUPPLEMENT","displayName":"영양제","confidence":0.99,"messageKo":"영양제로 확인했어요."},
               "brandName": "Daily Lab",
               "productName": "Front Only Vitamin",
               "suggestedUseOriginal": "",
@@ -132,7 +134,7 @@ class ScanServiceTest {
     void getRejectsOtherUsersScan() {
         var owner = users.save(new User("scan-owner@example.com", "hash"));
         var viewer = users.save(new User("scan-viewer@example.com", "hash"));
-        when(gemini.analyzeLabel(any(byte[].class), any(), any(byte[].class), any())).thenReturn("{\"productName\":\"Hidden\",\"ingredients\":[]}");
+        when(gemini.analyzeLabel(any(byte[].class), any(), any(byte[].class), any())).thenReturn("{\"recognition\":{\"category\":\"SUPPLEMENT\",\"displayName\":\"영양제\",\"confidence\":0.99,\"messageKo\":\"영양제로 확인했어요.\"},\"productName\":\"Hidden\",\"ingredients\":[]}");
         var response = scans.analyze(
             owner.getId(),
             image("front.png", "image/png", "front"),
@@ -147,7 +149,7 @@ class ScanServiceTest {
     @Test
     void confirmCreatesUserSupplementWithIngredients() {
         var user = users.save(new User("confirm@example.com", "hash"));
-        when(gemini.analyzeLabel(any(byte[].class), any(), any(byte[].class), any())).thenReturn("{\"productName\":\"Draft\",\"ingredients\":[]}");
+        when(gemini.analyzeLabel(any(byte[].class), any(), any(byte[].class), any())).thenReturn("{\"recognition\":{\"category\":\"SUPPLEMENT\",\"displayName\":\"영양제\",\"confidence\":0.99,\"messageKo\":\"영양제로 확인했어요.\"},\"productName\":\"Draft\",\"ingredients\":[]}");
         var response = scans.analyze(
             user.getId(),
             image("front.png", "image/png", "front"),
@@ -176,7 +178,7 @@ class ScanServiceTest {
     @Test
     void confirmCreatesKoreanDisplayNameAndStoresImageUri() {
         var user = users.save(new User("confirm-display@example.com", "hash"));
-        when(gemini.analyzeLabel(any(byte[].class), any(), any(byte[].class), any())).thenReturn("{\"productName\":\"Draft\",\"ingredients\":[]}");
+        when(gemini.analyzeLabel(any(byte[].class), any(), any(byte[].class), any())).thenReturn("{\"recognition\":{\"category\":\"SUPPLEMENT\",\"displayName\":\"영양제\",\"confidence\":0.99,\"messageKo\":\"영양제로 확인했어요.\"},\"productName\":\"Draft\",\"ingredients\":[]}");
         var response = scans.analyze(
             user.getId(),
             image("front.png", "image/png", "front"),
@@ -204,7 +206,7 @@ class ScanServiceTest {
     @Test
     void confirmCreatesMultipleDoseSchedulesWhenSuggestedUseIsTwiceDaily() {
         var user = users.save(new User("confirm-twice@example.com", "hash"));
-        when(gemini.analyzeLabel(any(byte[].class), any(), any(byte[].class), any())).thenReturn("{\"productName\":\"Draft\",\"ingredients\":[]}");
+        when(gemini.analyzeLabel(any(byte[].class), any(), any(byte[].class), any())).thenReturn("{\"recognition\":{\"category\":\"SUPPLEMENT\",\"displayName\":\"영양제\",\"confidence\":0.99,\"messageKo\":\"영양제로 확인했어요.\"},\"productName\":\"Draft\",\"ingredients\":[]}");
         var response = scans.analyze(
             user.getId(),
             image("front.png", "image/png", "front"),
@@ -235,7 +237,7 @@ class ScanServiceTest {
     @Test
     void confirmCreatesMealSpacedDoseSchedulesWhenSuggestedUseIsThreeTimesDaily() {
         var user = users.save(new User("confirm-three-times@example.com", "hash"));
-        when(gemini.analyzeLabel(any(byte[].class), any(), any(byte[].class), any())).thenReturn("{\"productName\":\"Draft\",\"ingredients\":[]}");
+        when(gemini.analyzeLabel(any(byte[].class), any(), any(byte[].class), any())).thenReturn("{\"recognition\":{\"category\":\"SUPPLEMENT\",\"displayName\":\"영양제\",\"confidence\":0.99,\"messageKo\":\"영양제로 확인했어요.\"},\"productName\":\"Draft\",\"ingredients\":[]}");
         var response = scans.analyze(
             user.getId(),
             image("front.png", "image/png", "front"),
@@ -261,6 +263,55 @@ class ScanServiceTest {
             .containsExactly("09:00", "13:00", "19:00");
         assertThat(supplements.findByIdAndUserId(supplementId, user.getId()).orElseThrow().getConfirmedDoseTime())
             .isEqualTo("09:00,13:00,19:00");
+    }
+
+    @Test
+    void nonSupplementResultIsKeptInHistoryAndCannotBeSavedByEditingProductDetails() {
+        var user = users.save(new User("soju-recognition@example.com", "hash"));
+        when(gemini.analyzeLabel(any(byte[].class), any(), isNull(), isNull())).thenReturn("""
+            {"brandName":"참이슬","productName":"fresh","originalLabelText":"참이슬 fresh",
+             "recognition":{"category":"ALCOHOL","displayName":"참이슬 소주","confidence":0.99,
+                "messageKo":"소주를 찍으셨네요. 술은 건강에 부담을 줄 수 있어요.","registrationAllowed":true},
+             "recommendedDoseTime":"09:00","suggestedUseKo":"하루 1정","ingredients":[{"name":"invented"}]}
+            """);
+        var response = scans.analyze(user.getId(), image("soju.png", "image/png", "soju"), null);
+        assertThat(response.status()).isEqualTo("COMPLETED");
+        assertThat(response.recognition().displayName()).isEqualTo("참이슬 소주");
+        assertThat(response.recognition().registrationAllowed()).isFalse();
+        assertThat(response.ingredients()).isEmpty();
+        assertThat(scans.get(user.getId(), response.scanId()).recognition()).isEqualTo(response.recognition());
+        assertThat(scans.history(user.getId()).entries()).singleElement().satisfies(entry -> {
+            assertThat(entry.displayNameKo()).isEqualTo("참이슬 소주");
+            assertThat(entry.recognition().category()).isEqualTo("ALCOHOL");
+            assertThat(entry.saved()).isFalse();
+        });
+        var originalCount = supplements.count();
+        var scheduleCount = doseSchedules.count();
+        assertThatThrownBy(() -> scans.confirm(user.getId(), response.scanId(), editedSupplementRequest()))
+            .isInstanceOf(ScanNotRegisterableException.class);
+        assertThat(supplements.count()).isEqualTo(originalCount);
+        assertThat(doseSchedules.count()).isEqualTo(scheduleCount);
+        assertThat(scanRepository.findById(response.scanId()).orElseThrow().getRawAiResponseJson()).contains("참이슬");
+    }
+
+    @Test
+    void legacyUnclassifiedAndIncompleteScansCannotBeConfirmed() {
+        var user = users.save(new User("legacy-recognition@example.com", "hash"));
+        var legacy = scanRepository.save(new com.pill.model.SupplementScan(user, "{}", "COMPLETED", "{}",
+            "{\"productName\":\"Old Vitamin\",\"ingredients\":[]}", null));
+        var incomplete = scanRepository.save(new com.pill.model.SupplementScan(user, "{}", "PROCESSING", "{}", """
+            {"recognition":{"category":"SUPPLEMENT","displayName":"비타민","confidence":0.99},"ingredients":[]}
+            """, null));
+        for (var scanId : List.of(legacy.getId(), incomplete.getId())) {
+            assertThatThrownBy(() -> scans.confirm(user.getId(), scanId, editedSupplementRequest()))
+                .isInstanceOf(ScanNotRegisterableException.class);
+        }
+        assertThat(supplements.findByUserIdAndScanIdIn(user.getId(), List.of(legacy.getId(), incomplete.getId()))).isEmpty();
+    }
+
+    private ConfirmScanRequest editedSupplementRequest() {
+        return new ConfirmScanRequest("renamed brand", "Vitamin C", "하루 1정", "Take daily", "", "Supplement Facts",
+            "", "09:00", List.of(new ConfirmScanRequest.Ingredient("Vitamin C", "500", "mg", "", 1, false)), "");
     }
 
     static class Config {

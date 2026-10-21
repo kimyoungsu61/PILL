@@ -1,4 +1,5 @@
 import type { ScanHistoryEntry } from '../api/types';
+import { scanRecognitionPresentation } from './scanRecognitionPresentation';
 
 export type ScanHistoryFilter = 'ALL' | 'SAVED' | 'REVIEW' | 'FAILED';
 
@@ -49,6 +50,14 @@ export function scanHistoryStatus(entry: ScanHistoryEntry) {
     };
   }
   if (entry.status === 'COMPLETED') {
+    const recognition = scanRecognitionPresentation(entry);
+    if (entry.recognition && !recognition.canRegister) {
+      return {
+        label: recognition.identified ? '인식 결과' : '사진 확인 필요',
+        action: '결과 보기',
+        tone: 'REVIEW' as const,
+      };
+    }
     return {
       label: '저장 전 분석',
       action: '분석 결과 이어보기',
@@ -70,6 +79,10 @@ export function scanHistoryStatus(entry: ScanHistoryEntry) {
 }
 
 export function scanHistoryName(entry: ScanHistoryEntry) {
+  if (!entry.saved && entry.recognition) {
+    const recognition = scanRecognitionPresentation(entry);
+    if (!recognition.canRegister) return recognition.displayName;
+  }
   return entry.displayNameKo?.trim()
     || entry.productName?.trim()
     || '제품명을 확인하지 못했어요';

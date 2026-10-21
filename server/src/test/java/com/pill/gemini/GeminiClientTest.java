@@ -44,7 +44,7 @@ class GeminiClientTest {
 
         var result = client.analyzeLabel(new byte[] {1, 2, 3}, "image/jpeg", null, null);
 
-        assertThat(result).contains("\"productName\":\"Vitamin C\"", "NEEDS_MORE_LABEL");
+        assertThat(result).contains("\"productName\":\"Vitamin C\"", "\"category\":\"UNKNOWN\"", "\"registrationAllowed\":false");
         server.verify();
     }
 

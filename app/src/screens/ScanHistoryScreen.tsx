@@ -47,7 +47,7 @@ const emptyHistory: ScanHistoryResponse = {
 const filters: Array<{ key: ScanHistoryFilter; label: string }> = [
   { key: 'ALL', label: '전체' },
   { key: 'SAVED', label: '저장됨' },
-  { key: 'REVIEW', label: '저장 전' },
+  { key: 'REVIEW', label: '미저장' },
   { key: 'FAILED', label: '실패' },
 ];
 
@@ -119,7 +119,7 @@ export default function ScanHistoryScreen({ navigation }: Props) {
           <View style={styles.headerCopy}>
             <Text style={styles.title}>스캔 기록</Text>
             <Text style={styles.subtitle}>
-              AI가 읽은 라벨과 보관함 저장 여부를 한눈에 확인하고, 저장 전 결과도 다시 이어볼 수 있어요.
+              촬영한 제품과 보관함 저장 여부를 확인하고, 이전 결과도 다시 열어볼 수 있어요.
             </Text>
           </View>
           <Pressable
@@ -152,7 +152,7 @@ export default function ScanHistoryScreen({ navigation }: Props) {
             />
             <SummaryStat
               icon={<ScanLine color={colors.active} size={18} strokeWidth={2.6} />}
-              label="저장 전 확인"
+              label="미저장 결과"
               value={history.summary.needsReview}
             />
             <SummaryStat

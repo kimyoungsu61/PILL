@@ -63,6 +63,7 @@ class ScanControllerTest {
         var user = users.save(new User("scan-api@example.com", "hash"));
         when(gemini.analyzeLabel(any(byte[].class), eq("image/png"), any(byte[].class), eq("image/jpeg"))).thenReturn("""
             {
+              "recognition":{"category":"SUPPLEMENT","displayName":"영양제","confidence":0.99,"messageKo":"영양제로 확인했어요."},
               "brandName": "Healthy Labs",
               "productName": "Morning Vitamin",
               "suggestedUseKo": "하루 1정",
@@ -163,6 +164,7 @@ class ScanControllerTest {
         var user = users.save(new User("front-only-scan-api@example.com", "hash"));
         when(gemini.analyzeLabel(any(byte[].class), eq("image/png"), isNull(), isNull())).thenReturn("""
             {
+              "recognition":{"category":"SUPPLEMENT","displayName":"영양제","confidence":0.99,"messageKo":"영양제로 확인했어요."},
               "brandName": "Daily Lab",
               "productName": "Front Only Vitamin",
               "suggestedUseKo": "",
@@ -183,6 +185,42 @@ class ScanControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.status").value("COMPLETED"))
             .andExpect(jsonPath("$.productName").value("Front Only Vitamin"));
+    }
+
+    @Test
+    void recognizedAlcoholReturnsAdvisoryAndServerRejectsEditedSupplementConfirmation() throws Exception {
+        var user = users.save(new User("recognized-soju-api@example.com", "hash"));
+        var token = sessions.issue(user).token();
+        when(gemini.analyzeLabel(any(byte[].class), eq("image/png"), isNull(), isNull())).thenReturn("""
+            {"brandName":"참이슬","productName":"fresh",
+             "recognition":{"category":"ALCOHOL","displayName":"참이슬 소주","confidence":0.99,
+                "messageKo":"소주를 찍으셨네요. 술은 건강에 부담을 줄 수 있어요.","registrationAllowed":true},
+             "ingredients":[{"name":"not a supplement"}],"recommendedDoseTime":"09:00"}
+            """);
+        var result = mvc.perform(multipart("/api/scans")
+                .file(new MockMultipartFile("frontImage", "soju.png", "image/png", pngBytes()))
+                .header("Authorization", "Bearer " + token))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("COMPLETED"))
+            .andExpect(jsonPath("$.recognition.category").value("ALCOHOL"))
+            .andExpect(jsonPath("$.recognition.displayName").value("참이슬 소주"))
+            .andExpect(jsonPath("$.recognition.registrationAllowed").value(false))
+            .andExpect(jsonPath("$.ingredients.length()").value(0))
+            .andExpect(jsonPath("$.recommendedDoseTime").value(""))
+            .andReturn();
+        var scanId = mapper.readTree(result.getResponse().getContentAsString()).path("scanId").asLong();
+        var before = supplements.count();
+        mvc.perform(put("/api/scans/" + scanId + "/confirmed")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(mapper.writeValueAsBytes(validConfirmBody().put("productName", "Renamed Vitamin C"))))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("SCAN_NOT_REGISTERABLE"))
+            .andExpect(jsonPath("$.message").value("영양제로 확인된 제품만 등록할 수 있어요. 제품을 다시 촬영해 주세요."));
+        assertThat(supplements.count()).isEqualTo(before);
+        mvc.perform(get("/api/scans/" + scanId).header("Authorization", "Bearer " + token))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.recognition.category").value("ALCOHOL"));
     }
 
     @Test
@@ -273,6 +311,7 @@ class ScanControllerTest {
         var frontImage = new MockMultipartFile("frontImage", "front.png", "image/png", pngBytes());
         when(gemini.analyzeLabel(any(byte[].class), eq("image/png"), isNull(), isNull())).thenReturn("""
             {
+              "recognition":{"category":"SUPPLEMENT","displayName":"영양제","confidence":0.99,"messageKo":"영양제로 확인했어요."},
               "brandName": "Daily Lab",
               "productName": "Rate Limited Vitamin",
               "suggestedUseKo": "",

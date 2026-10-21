@@ -59,10 +59,33 @@ public class GeminiClient {
         var base64FrontImage = Base64.getEncoder().encodeToString(frontImageBytes);
         var parts = new ArrayList<Map<String, Object>>();
         parts.add(Map.of("text", """
+            FIRST recognize the main photographed target, even when it is not a supplement.
+            Return recognition: {category, displayName, confidence, messageKo} in every response.
+            category is exactly SUPPLEMENT, ALCOHOL, BEVERAGE, FOOD, MEDICINE, OTHER or UNKNOWN.
+            Identify the product/object that is centered or deliberately held, not background table items.
+            displayName is the recognizable product/object name in natural Korean, e.g. "참이슬 소주",
+            "콜라", "제로 콜라", "물", or "마그네슘 영양제". Use only visible evidence, not a guess.
+            confidence is a numeric 0.0 to 1.0 probability that BOTH identity and category are established.
+            If blurry, mixed targets, conflicting photos, or insufficient identity evidence, use UNKNOWN.
+            A bottle, capsules, softgels, healthy marketing or a brand alone never proves SUPPLEMENT.
+            Use SUPPLEMENT only for an identifiable dietary supplement/건강기능식품 supported by its
+            visible product identity or Supplement Facts/건강기능식품 label. Medicines are MEDICINE.
+            messageKo is one or two short, warm, natural Korean sentences about the actual target,
+            using 해요/주세요. For soju, acknowledge 소주 and gently say alcohol can burden health.
+            For cola, acknowledge 콜라 and suggest checking sugar/caffeine on the label; do not assume
+            sugar is present in zero/diet products or caffeine is present in every cola or beverage.
+            If ingredients are not visible, use conditional phrasing instead of asserting their presence.
+            For other objects, acknowledge what is visible and offer a fitting simple practical note.
+            For UNKNOWN explain that identity is uncertain and ask for a clearer product label photo.
+            Never invent alcohol percentage, calories, sugar/caffeine quantity, nutrition, personal dose,
+            health effects, diagnoses, treatment claims or ways to offset alcohol harm.
+            Only for a confident SUPPLEMENT (confidence >= 0.8), extract the supplement fields below.
+            For all other categories/uncertain targets, leave supplement dosage/warnings/serving basis
+            strings empty, ingredients and otherIngredients empty, and do not propose reminder times.
             Extract supplement label information as strict JSON with keys:
             brandName, productName, suggestedUseOriginal, suggestedUseKo,
             ingredients, warningsOriginal, warningsKo, originalLabelText,
-            recommendedDoseTime, servingBasisKo, otherIngredients, storageKo.
+            recommendedDoseTime, servingBasisKo, otherIngredients, storageKo, recognition.
             Each ingredient must include name, amount, unit, originalText, confidence.
             ingredients contains ONLY active nutrients listed in Supplement Facts; do not put
             capsule materials, coating, fillers or Other ingredients into quantified nutrient rows.
@@ -73,7 +96,7 @@ public class GeminiClient {
             for example "1정당" or "2캡슐당". Keep ingredient amounts on that exact basis.
             Leave servingBasisKo empty when the basis is not visible; never infer it from suggested use.
             confidence must be a number from 0.0 to 1.0.
-            The first image is the front label and should be used mainly for brandName and productName.
+            The first image shows the primary target and should be used mainly for identity and brand/product.
             brandName and productName must come from the visible front product label text.
             Never use Supplement Facts, Other ingredients, capsule shell, magnesium stearate,
             rice flour, cellulose, or similar inactive ingredients as productName.
@@ -115,6 +138,12 @@ public class GeminiClient {
         );
 
         var observed = parseObject(extractText(call(body)));
+        var recognition = com.pill.scan.ScanRecognition.from(observed.path("recognition"));
+        observed.set("recognition", mapper.valueToTree(recognition));
+        if (!recognition.registrationAllowed()) {
+            com.pill.scan.ScanRecognition.clearSupplementDetails(observed);
+            return observed.toString();
+        }
         separateInactiveIngredients(observed);
         var research = mapper.createObjectNode();
         research.put("status", "LABEL_ONLY");
@@ -152,6 +181,13 @@ public class GeminiClient {
             fields.put(field, Map.of("type", "STRING"));
         }
         fields.put("otherIngredients", Map.of("type", "ARRAY", "items", Map.of("type", "STRING")));
+        fields.put("recognition", Map.of("type", "OBJECT", "properties", Map.of(
+            "category", Map.of("type", "STRING", "enum", List.of(
+                "SUPPLEMENT", "ALCOHOL", "BEVERAGE", "FOOD", "MEDICINE", "OTHER", "UNKNOWN")),
+            "displayName", Map.of("type", "STRING"),
+            "confidence", Map.of("type", "NUMBER", "minimum", 0, "maximum", 1),
+            "messageKo", Map.of("type", "STRING")),
+            "required", List.of("category", "displayName", "confidence", "messageKo")));
         fields.put("ingredients", Map.of("type", "ARRAY", "items", Map.of(
             "type", "OBJECT", "properties", Map.of(
                 "name", Map.of("type", "STRING"), "amount", Map.of("type", "STRING"),

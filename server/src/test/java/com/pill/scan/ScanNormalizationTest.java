@@ -13,6 +13,7 @@ class ScanNormalizationTest {
     void normalizePreservesProductNameAndFlagsLowConfidenceIngredient() {
         var rawJson = """
             {
+              "recognition":{"category":"SUPPLEMENT","displayName":"영양제","confidence":0.99,"messageKo":"영양제로 확인했어요."},
               "brandName": "Healthy Labs",
               "productName": "Morning Vitamin",
               "suggestedUseOriginal": "Take one tablet daily with food.",
@@ -49,6 +50,7 @@ class ScanNormalizationTest {
         var rawJson = """
             ```json
             {
+              "recognition":{"category":"SUPPLEMENT","displayName":"영양제","confidence":0.99,"messageKo":"영양제로 확인했어요."},
               "productName": "Evening Magnesium",
               "ingredients": []
             }
@@ -65,11 +67,13 @@ class ScanNormalizationTest {
     void normalizeTreatsMissingAndNonArrayIngredientsAsEmpty() {
         var missingIngredients = """
             {
+              "recognition":{"category":"SUPPLEMENT","displayName":"영양제","confidence":0.99,"messageKo":"영양제로 확인했어요."},
               "brandName": "Plain Labs"
             }
             """;
         var nonArrayIngredients = """
             {
+              "recognition":{"category":"SUPPLEMENT","displayName":"영양제","confidence":0.99,"messageKo":"영양제로 확인했어요."},
               "brandName": "Plain Labs",
               "ingredients": {
                 "name": "Vitamin D"
@@ -85,6 +89,7 @@ class ScanNormalizationTest {
     void normalizeOnlyFlagsIngredientConfidenceBelowThreshold() {
         var rawJson = """
             {
+              "recognition":{"category":"SUPPLEMENT","displayName":"영양제","confidence":0.99,"messageKo":"영양제로 확인했어요."},
               "ingredients": [
                 { "name": "Vitamin D", "confidence": 0.79 },
                 { "name": "Magnesium", "confidence": 0.8 },
@@ -104,6 +109,7 @@ class ScanNormalizationTest {
     void normalizeDefaultsMissingVitaminDoseTimeToMorning() {
         var rawJson = """
             {
+              "recognition":{"category":"SUPPLEMENT","displayName":"영양제","confidence":0.99,"messageKo":"영양제로 확인했어요."},
               "brandName": "Jongkundang",
               "productName": "Multi Vita Booster Shot",
               "suggestedUseKo": "1일 1회 섭취",
@@ -123,6 +129,7 @@ class ScanNormalizationTest {
     void normalizeDefaultsMagnesiumDoseTimeToEvening() {
         var rawJson = """
             {
+              "recognition":{"category":"SUPPLEMENT","displayName":"영양제","confidence":0.99,"messageKo":"영양제로 확인했어요."},
               "productName": "Evening Magnesium",
               "suggestedUseKo": "하루 1정 섭취",
               "recommendedDoseTime": "with meal",
@@ -141,6 +148,7 @@ class ScanNormalizationTest {
     void normalizeDefaultsProbioticDoseTimeBeforeMagnesiumStearateOtherIngredient() {
         var rawJson = """
             {
+              "recognition":{"category":"SUPPLEMENT","displayName":"영양제","confidence":0.99,"messageKo":"영양제로 확인했어요."},
               "brandName": "Nanowell",
               "productName": "55B PROBIOTICS with Digestive Enzymes",
               "suggestedUseKo": "매일 음식과 함께 캡슐 1개를 섭취하십시오.",
@@ -161,6 +169,7 @@ class ScanNormalizationTest {
     void normalizeDoesNotUseMagnesiumStearateAsProbioticProductName() {
         var rawJson = """
             {
+              "recognition":{"category":"SUPPLEMENT","displayName":"영양제","confidence":0.99,"messageKo":"영양제로 확인했어요."},
               "brandName": "Healthy Gut",
               "productName": "Magnesium",
               "suggestedUseOriginal": "Probiotic supplement. Other ingredients: magnesium stearate.",
@@ -182,6 +191,7 @@ class ScanNormalizationTest {
     void normalizeConvertsGeminiConfidenceScalesToProbability() {
         var rawJson = """
             {
+              "recognition":{"category":"SUPPLEMENT","displayName":"영양제","confidence":0.99,"messageKo":"영양제로 확인했어요."},
               "ingredients": [
                 { "name": "Five Point Scale", "confidence": 5 },
                 { "name": "Percent Scale", "confidence": 95 },
@@ -201,6 +211,7 @@ class ScanNormalizationTest {
     void normalizeDefaultsMissingTextFieldsAndSkipsNonObjectIngredients() {
         var rawJson = """
             {
+              "recognition":{"category":"SUPPLEMENT","displayName":"영양제","confidence":0.99,"messageKo":"영양제로 확인했어요."},
               "ingredients": [
                 "not an ingredient",
                 { "name": "Vitamin C" }
@@ -236,7 +247,7 @@ class ScanNormalizationTest {
             .mapToObj(index -> "{\"name\":\"Ingredient " + index + "\",\"confidence\":0.9}")
             .collect(Collectors.joining(","));
 
-        var result = ScanService.normalize("{\"ingredients\":[" + ingredients + "]}");
+        var result = ScanService.normalize("{\"recognition\":{\"category\":\"SUPPLEMENT\",\"displayName\":\"영양제\",\"confidence\":0.99,\"messageKo\":\"영양제로 확인했어요.\"},\"ingredients\":[" + ingredients + "]}");
 
         assertThat(result.ingredients()).hasSize(100);
         assertThat(result.ingredients().getLast().name()).isEqualTo("Ingredient 99");
@@ -246,6 +257,7 @@ class ScanNormalizationTest {
     void normalizeTruncatesProviderStringsToPersistenceLimits() {
         var result = ScanService.normalize("""
             {
+              "recognition":{"category":"SUPPLEMENT","displayName":"영양제","confidence":0.99,"messageKo":"영양제로 확인했어요."},
               "brandName": "%s",
               "productName": "%s",
               "suggestedUseKo": "%s",
