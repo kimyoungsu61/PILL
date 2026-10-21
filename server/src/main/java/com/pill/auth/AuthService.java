@@ -49,7 +49,9 @@ public class AuthService {
     @Transactional
     public AuthResponse login(String email, String password) {
         email = normalizeEmail(email);
-        var user = userRepository.findByEmail(email).orElse(null);
+        // Serialize password checking/session issuance with password recovery.
+        // A login using the old password must not issue a session after reset.
+        var user = userRepository.lockByEmail(email).orElse(null);
         var passwordHash = user == null ? dummyPasswordHash : user.getPasswordHash();
         var passwordMatches = passwordEncoder.matches(password, passwordHash);
 

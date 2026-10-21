@@ -63,8 +63,13 @@ public class AuthSessionService {
         if (session.getRevokedAt() != null || !session.getExpiresAt().isAfter(now)) {
             throw new InvalidSessionException();
         }
-        session.extendUntil(session.getCreatedAt().plus(sessionTtl));
-        return session.getExpiresAt();
+        var deadline = session.getCreatedAt().plus(sessionTtl);
+        // Update only expiry, with the revocation check in the same database statement.
+        // A password reset must never be overwritten by a stale managed session.
+        if (sessions.rememberActive(sessionId, now, deadline) != 1) {
+            throw new InvalidSessionException();
+        }
+        return session.getExpiresAt().isAfter(deadline) ? session.getExpiresAt() : deadline;
     }
 
     @Transactional

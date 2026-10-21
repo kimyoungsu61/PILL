@@ -29,6 +29,8 @@ import SupplementDetailScreen from '../screens/SupplementDetailScreen';
 import SupplementsScreen from '../screens/SupplementsScreen';
 import TodayScreen from '../screens/TodayScreen';
 import GardenScreen from '../screens/GardenScreen';
+import AccountScreen from '../screens/AccountScreen';
+import PasswordResetScreen from '../screens/PasswordResetScreen';
 import type { ReminderConfirmation } from '../notifications/reminderConfirmation';
 import type { RegistrationReminders } from '../notifications/registrationReminders';
 import { colors, spacing } from '../theme';
@@ -36,6 +38,8 @@ import { colors, spacing } from '../theme';
 export type RootStackParamList = {
   Login: undefined;
   Signup: undefined;
+  Account: undefined;
+  PasswordReset: { email?: string } | undefined;
   MainTabs: NavigatorScreenParams<MainTabParamList> | undefined;
   ImageInput: undefined;
   ManualSupplement: ManualSupplementDraft | undefined;
@@ -223,6 +227,7 @@ export default function AppNavigator() {
           {token ? (
             <>
               <Stack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
+              <Stack.Screen name="Account" component={AccountScreen} options={{ title: '계정 관리' }} />
               <Stack.Screen name="ImageInput" component={ImageInputScreen} options={{ title: '촬영' }} />
               <Stack.Screen name="ManualSupplement" component={ManualSupplementScreen} options={{ title: '직접 등록' }} />
               <Stack.Screen name="ScanResult" component={ScanResultScreen} options={{ title: '분석 결과' }} />
@@ -240,6 +245,7 @@ export default function AppNavigator() {
               <Stack.Screen name="Signup" component={SignupScreen} options={{ title: '시작하기' }} />
             </>
           )}
+          <Stack.Screen name="PasswordReset" component={PasswordResetScreen} options={{ title: '비밀번호 재설정' }} />
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>

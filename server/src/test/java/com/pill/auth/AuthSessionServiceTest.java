@@ -1,11 +1,13 @@
 package com.pill.auth;
 
 import com.pill.model.User;
+import com.pill.model.AuthSession;
 import com.pill.repository.AuthSessionRepository;
 import com.pill.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.security.SecureRandom;
 import java.time.Clock;
@@ -23,6 +25,7 @@ class AuthSessionServiceTest {
 
     @Autowired AuthSessionRepository sessions;
     @Autowired UserRepository users;
+    @Autowired JdbcTemplate db;
 
     @Test
     void persistsOnlyHashAndAuthenticatesActiveSession() {
@@ -59,6 +62,30 @@ class AuthSessionServiceTest {
         assertThat(sessions.findById(sessionId).orElseThrow().getRevokedAt()).isEqualTo(NOW);
         assertThatThrownBy(() -> service.authenticate(issued.token()))
             .isInstanceOf(InvalidSessionException.class);
+    }
+
+    @Test
+    void rememberingLegacySessionUsesOriginalLoginDeadlineWithoutSliding() {
+        var user = users.save(new User("legacy@example.com", "hash"));
+        var session = sessions.saveAndFlush(new AuthSession(user, "a".repeat(64), NOW, NOW.plus(Duration.ofDays(7))));
+        var id = session.getId();
+        assertThat(serviceAt(NOW.plus(Duration.ofDays(2))).remember(id)).isEqualTo(NOW.plus(SESSION_TTL));
+        assertThat(serviceAt(NOW.plus(Duration.ofDays(3))).remember(id)).isEqualTo(NOW.plus(SESSION_TTL));
+        assertThat(sessions.findById(id).orElseThrow().getExpiresAt()).isEqualTo(NOW.plus(SESSION_TTL));
+    }
+
+    @Test
+    void rememberingCachedSessionCannotUndoPasswordResetRevocation() {
+        var user = users.save(new User("stale@example.com", "hash"));
+        var cached = sessions.saveAndFlush(new AuthSession(user, "b".repeat(64), NOW, NOW.plus(Duration.ofDays(7))));
+        var id = cached.getId();
+        db.update("UPDATE auth_session SET revoked_at=? WHERE id=?", NOW, id);
+        assertThat(cached.getRevokedAt()).isNull();
+
+        assertThatThrownBy(() -> serviceAt(NOW.plusSeconds(1)).remember(id))
+            .isInstanceOf(InvalidSessionException.class);
+        assertThat(sessions.findById(id).orElseThrow().getRevokedAt()).isEqualTo(NOW);
+        assertThat(sessions.findById(id).orElseThrow().getExpiresAt()).isEqualTo(NOW.plus(Duration.ofDays(7)));
     }
 
     private AuthSessionService serviceAt(Instant instant) {

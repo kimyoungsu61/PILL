@@ -44,6 +44,8 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.POST, "/api/auth/signup", "/api/auth/login").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/auth/password-reset/request", "/api/auth/password-reset/confirm").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/auth/account-config").permitAll()
                 .requestMatchers(HttpMethod.GET, "/", "/index.html", "/install.html", "/install.css", "/install.js", "/manifest.webmanifest", "/sw.js", "/icons/**", "/_expo/**", "/assets/**", "/favicon.ico", "/healthz").permitAll()
                 .requestMatchers("/api/**").authenticated()
                 .anyRequest().denyAll())

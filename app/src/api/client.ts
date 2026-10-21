@@ -24,6 +24,12 @@ export const DEFAULT_API_TIMEOUT_MS = 20_000;
 
 let unauthorizedHandler: UnauthorizedHandler | null = null;
 let unauthorizedHandlerPromise: Promise<void> | null = null;
+let authGeneration = 0;
+
+export function beginAuthTransition() {
+  authGeneration += 1;
+  unauthorizedHandlerPromise = null;
+}
 
 export class UnauthorizedError extends Error {
   constructor() {
@@ -77,8 +83,8 @@ export const API_BASE_URL = resolveApiBaseUrl(
 );
 
 export function setUnauthorizedHandler(handler: UnauthorizedHandler | null) {
+  beginAuthTransition();
   unauthorizedHandler = handler;
-  unauthorizedHandlerPromise = null;
 }
 
 export function readableErrorMessage(body: string, fallback: string) {
@@ -112,6 +118,7 @@ export async function apiFetch(
   token?: string,
   timeoutMs = DEFAULT_API_TIMEOUT_MS,
 ) {
+  const requestAuthGeneration = authGeneration;
   if (!path.startsWith('/') || path.startsWith('//')) {
     throw new Error('API path must be relative to the configured origin.');
   }
@@ -159,7 +166,7 @@ export async function apiFetch(
   }
 
   if (token && response.status === 401) {
-    if (!skipAuthReset) await notifyUnauthorized();
+    if (!skipAuthReset) await notifyUnauthorized(requestAuthGeneration);
     throw new UnauthorizedError();
   }
   return response;
@@ -190,14 +197,14 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
   return JSON.parse(text) as T;
 }
 
-async function notifyUnauthorized() {
-  if (!unauthorizedHandler) {
+async function notifyUnauthorized(expectedGeneration: number) {
+  if (!unauthorizedHandler || expectedGeneration !== authGeneration) {
     return;
   }
   if (!unauthorizedHandlerPromise) {
     const handler = unauthorizedHandler;
     const currentPromise = Promise.resolve()
-      .then(() => handler())
+      .then(() => expectedGeneration === authGeneration ? handler() : undefined)
       .catch(() => undefined)
       .finally(() => {
         if (unauthorizedHandlerPromise === currentPromise) {

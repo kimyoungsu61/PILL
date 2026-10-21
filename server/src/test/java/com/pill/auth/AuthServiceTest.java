@@ -90,7 +90,7 @@ class AuthServiceTest {
         var repository = mock(UserRepository.class);
         var passwordEncoder = mock(PasswordEncoder.class);
         when(passwordEncoder.encode(any())).thenReturn("dummy-hash");
-        when(repository.findByEmail("missing@example.com")).thenReturn(Optional.empty());
+        when(repository.lockByEmail("missing@example.com")).thenReturn(Optional.empty());
         var service = new AuthService(repository, mock(AuthSessionService.class), passwordEncoder);
 
         assertThatThrownBy(() -> service.login("missing@example.com", "candidate-password"))

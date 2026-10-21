@@ -100,16 +100,7 @@ export default function MenuScreen() {
   }
 
   function openAccountManagement() {
-    setActiveInfo({
-      title: '계정 관리',
-      body: email ?? '현재 로그인된 PILL 계정',
-      items: [
-        '이 이메일은 PILL 로그인과 복용 기록 동기화 기준입니다.',
-        '영양제 보관함과 복용 기록은 같은 계정에서 이어집니다.',
-        '복용 알림은 기기별로 설정할 수 있습니다.',
-        '이 기기에서 로그아웃하려면 메뉴 하단의 로그아웃을 이용해 주세요.',
-      ],
-    });
+    navigation.navigate('Account');
   }
 
   return (

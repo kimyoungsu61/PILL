@@ -32,7 +32,9 @@ public class SessionAuthenticationFilter extends OncePerRequestFilter {
         }
         var authorization = request.getHeader("Authorization");
         var path = request.getServletPath().isEmpty() ? request.getRequestURI() : request.getServletPath();
-        var publicLogin = path.equals("/api/auth/login") || path.equals("/api/auth/signup");
+        var publicLogin = path.equals("/api/auth/login") || path.equals("/api/auth/signup")
+            || path.equals("/api/auth/password-reset/request") || path.equals("/api/auth/password-reset/confirm")
+            || path.equals("/api/auth/account-config");
         var cookieToken = path.startsWith("/api/") && !publicLogin ? BrowserSession.cookieToken(request) : null;
         if (authorization == null && cookieToken == null) {
             filterChain.doFilter(request, response);
@@ -53,7 +55,8 @@ public class SessionAuthenticationFilter extends OncePerRequestFilter {
             principal = sessions.authenticate(usingCookie ? cookieToken : authorization.substring(7));
         } catch (InvalidSessionException exception) {
             SecurityContextHolder.clearContext();
-            if (usingCookie) BrowserSession.clear(response);
+            // A late response from an old session must not expire a newer login's
+            // browser cookie. The rejected credential is already invalid server-side.
             authenticationEntryPoint.commence(request, response, new BadCredentialsException("invalid session", exception));
             return;
         }
