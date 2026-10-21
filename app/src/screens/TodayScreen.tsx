@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, AppState, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NavigationProp } from '@react-navigation/native';
 import { Bell, CheckCircle2, ChevronRight, Plus, X } from 'lucide-react-native';
@@ -9,6 +9,8 @@ import type { HomeResponse, TodayDose } from '../api/types';
 import { useAuth } from '../auth/AuthContext';
 import AddSupplementSheet from '../components/AddSupplementSheet';
 import DoseCheckRow from '../components/DoseCheckRow';
+import GardenProgressCard, { GardenCelebration } from '../garden/GardenProgressCard';
+import { gardenMilestone, type GardenState } from '../garden/types';
 import type { MainTabParamList, RootStackParamList } from '../navigation/AppNavigator';
 import type { ReminderConfirmation } from '../notifications/reminderConfirmation';
 import { colors } from '../theme';
@@ -29,6 +31,11 @@ export default function TodayScreen({ route, navigation: tabNavigation }: Bottom
   const [isPosting, setIsPosting] = useState(false);
   const [savedMessage, setSavedMessage] = useState('');
   const [showAdd, setShowAdd] = useState(false);
+  const [garden, setGarden] = useState<GardenState | null>(null);
+  const [gardenError, setGardenError] = useState(false);
+  const [earnedStamp, setEarnedStamp] = useState(false);
+  const [celebration, setCelebration] = useState<GardenState | null>(null);
+  const gardenRef = useRef<GardenState | null>(null);
   const [confirmation, setConfirmation] = useState<ReminderConfirmation | null>(null);
   const incomingConfirmation = route.params?.reminderConfirmation;
   useEffect(() => {
@@ -38,6 +45,7 @@ export default function TodayScreen({ route, navigation: tabNavigation }: Bottom
   }, [incomingConfirmation, tabNavigation]);
   const posting = useRef(false);
   const requestVersion = useRef(0);
+  const isFocused = useRef(false);
   const doses = useMemo(() => [...home.todayDoses].sort((a, b) =>
     (a.confirmedTime || '99:99').localeCompare(b.confirmedTime || '99:99')
     || a.supplementId - b.supplementId), [home.todayDoses]);
@@ -50,30 +58,59 @@ export default function TodayScreen({ route, navigation: tabNavigation }: Bottom
     return Array.from(byTime);
   }, [doses]);
   const done = doses.filter(dose => dose.status === 'TAKEN').length;
-  const remaining = doses.length - done;
-  const percent = doses.length ? Math.round(done / doses.length * 100) : 0;
+
+  const acceptGarden = useCallback((next: GardenState) => {
+    const previous = gardenRef.current;
+    const newlyEarned = Boolean(previous && next.todayEarned && next.totalStamps > previous.totalStamps);
+    if (gardenMilestone(previous, next)) setCelebration(next);
+    setEarnedStamp(newlyEarned);
+    gardenRef.current = next;
+    setGarden(next);
+    setGardenError(false);
+  }, []);
 
   const loadHome = useCallback(async () => {
     if (!token || posting.current) return;
     const version = ++requestVersion.current;
     setError('');
     setIsLoading(true);
-    try {
-      const response = await apiRequest<HomeResponse>('/api/home', {}, token);
-      if (version === requestVersion.current) setHome(response);
-    } catch (err) {
-      if (version === requestVersion.current) setError(err instanceof Error ? err.message : '복용 목록을 불러오지 못했어요.');
-    } finally {
-      if (version === requestVersion.current) setIsLoading(false);
-    }
-  }, [token]);
+    const [homeResult, gardenResult] = await Promise.allSettled([
+      apiRequest<HomeResponse>('/api/home', {}, token),
+      apiRequest<GardenState>('/api/garden', {}, token),
+    ]);
+    if (version !== requestVersion.current) return;
+    if (homeResult.status === 'fulfilled') setHome(homeResult.value);
+    else setError(homeResult.reason instanceof Error ? homeResult.reason.message : '복용 목록을 불러오지 못했어요.');
+    if (gardenResult.status === 'fulfilled') acceptGarden(gardenResult.value);
+    else setGardenError(true);
+    setIsLoading(false);
+  }, [token, acceptGarden]);
 
-  useFocusEffect(useCallback(() => { void loadHome(); }, [loadHome]));
+  useFocusEffect(useCallback(() => {
+    isFocused.current = true;
+    void loadHome();
+    let currentDay = new Date().toDateString();
+    const refresh = () => { void loadHome(); };
+    const appState = AppState.addEventListener('change', state => { if (state === 'active') refresh(); });
+    const timer = setInterval(() => {
+      const nextDay = new Date().toDateString();
+      if (nextDay !== currentDay) { currentDay = nextDay; refresh(); }
+    }, 30_000);
+    const visibility = () => { if (typeof document !== 'undefined' && document.visibilityState === 'visible') refresh(); };
+    if (typeof document !== 'undefined') document.addEventListener('visibilitychange', visibility);
+    return () => {
+      isFocused.current = false;
+      ++requestVersion.current;
+      appState.remove();
+      clearInterval(timer);
+      if (typeof document !== 'undefined') document.removeEventListener('visibilitychange', visibility);
+    };
+  }, [loadHome]));
 
   async function toggleDose(dose: TodayDose) {
     if (!token || posting.current || isLoading) return;
     posting.current = true;
-    ++requestVersion.current;
+    const version = ++requestVersion.current;
     const previous = home;
     const clear = dose.status === 'TAKEN';
     setHome(current => ({ ...current, todayDoses: clear
@@ -82,19 +119,31 @@ export default function TodayScreen({ route, navigation: tabNavigation }: Bottom
     setIsPosting(true);
     setError('');
     setSavedMessage('');
+    setEarnedStamp(false);
     try {
       const query = clear && dose.confirmedTime ? '?doseTime=' + encodeURIComponent(dose.confirmedTime) : '';
       await apiRequest<void>('/api/supplements/' + dose.supplementId + '/dose-logs' + query, {
         method: clear ? 'DELETE' : 'POST',
         ...(clear ? {} : { body: JSON.stringify({ status: 'TAKEN', memo: '', doseTime: dose.confirmedTime }) }),
       }, token);
+      if (version !== requestVersion.current) return;
       setSavedMessage(clear ? '완료 기록을 취소했어요.' : '복용 기록을 저장했어요.');
+      // A garden refresh failing must never roll back a successfully saved dose.
+      try {
+        const next = await apiRequest<GardenState>('/api/garden', {}, token);
+        if (version === requestVersion.current) acceptGarden(next);
+      } catch {
+        if (version === requestVersion.current) setGardenError(true);
+      }
     } catch (err) {
-      setHome(previous);
-      setError(err instanceof Error ? err.message : '기록을 저장하지 못했어요. 다시 체크해 주세요.');
+      if (version === requestVersion.current) {
+        setHome(previous);
+        setError(err instanceof Error ? err.message : '기록을 저장하지 못했어요. 다시 체크해 주세요.');
+      }
     } finally {
       posting.current = false;
       setIsPosting(false);
+      if (version !== requestVersion.current && isFocused.current) void loadHome();
     }
   }
 
@@ -136,16 +185,8 @@ export default function TodayScreen({ route, navigation: tabNavigation }: Bottom
             </Pressable>
           </View> : null}
 
-          <View style={styles.progressCard}>
-            <View style={styles.progressTop}>
-              <View>
-                <Text style={styles.progressCaption}>오늘의 기록</Text>
-                <Text style={styles.progressValue}>{done}<Text style={styles.progressTotal}> / {doses.length}회</Text></Text>
-              </View>
-              <Text style={styles.remainingText}>{isLoading && !doses.length ? '불러오는 중' : doses.length ? remaining ? `${remaining}회 남았어요` : '모두 기록했어요' : '예정된 복용 없음'}</Text>
-            </View>
-            <View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${percent}%` }]} /></View>
-          </View>
+          <GardenProgressCard done={done} total={doses.length} loading={isLoading} garden={garden}
+            error={gardenError} earned={earnedStamp} onOpen={() => navigation.navigate('Garden')} onRetry={() => void loadHome()} />
 
           {error ? <View style={styles.error}>
             <Text accessibilityRole="alert" style={styles.errorText}>{error}</Text>
@@ -195,6 +236,7 @@ export default function TodayScreen({ route, navigation: tabNavigation }: Bottom
       </ScrollView>
       <AddSupplementSheet visible={showAdd} onClose={() => setShowAdd(false)}
         onScan={() => openAdd('ImageInput')} onManual={() => openAdd('ManualSupplement')} />
+      <GardenCelebration garden={celebration} onClose={() => setCelebration(null)} onOpen={() => { setCelebration(null); navigation.navigate('Garden'); }} />
     </>
   );
 }

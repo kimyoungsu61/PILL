@@ -27,7 +27,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @DataJpaTest
-@Import({ScanService.class, ScanServiceTest.Config.class})
+@Import({ScanService.class, com.pill.garden.GardenService.class, ScanServiceTest.Config.class})
 @TestPropertySource(properties = "spring.jpa.hibernate.ddl-auto=create-drop")
 class ScanServiceTest {
     @Autowired ScanService scans;
@@ -264,6 +264,8 @@ class ScanServiceTest {
     }
 
     static class Config {
+        @Bean
+        java.time.Clock clock() { return java.time.Clock.system(java.time.ZoneId.of("Asia/Seoul")); }
         @Bean
         GeminiClient geminiClient() {
             return mock(GeminiClient.class);
