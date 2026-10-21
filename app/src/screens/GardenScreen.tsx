@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Check, LockKeyhole, RefreshCw } from 'lucide-react-native';
-import { apiRequest } from '../api/client';
+import { readGarden, saveGardenStyle } from '../garden/requests';
 import { useAuth } from '../auth/AuthContext';
 import RitualAction from '../components/RitualAction';
 import RitualSurface from '../components/RitualSurface';
@@ -55,7 +55,7 @@ export default function GardenScreen() {
     setError(null);
     setSavedMessage('');
     try {
-      const response = await apiRequest<GardenState>('/api/garden', {}, token);
+      const response = await readGarden(token);
       if (current()) setSnapshot({ owner: token, garden: response });
     } catch {
       if (current()) setError({ kind: 'load' });
@@ -105,10 +105,7 @@ export default function GardenScreen() {
     setError(null);
     setSavedMessage('');
     try {
-      const response = await apiRequest<GardenState>('/api/garden/style', {
-        method: 'PUT',
-        body: JSON.stringify(choice),
-      }, token);
+      const response = await saveGardenStyle(token, choice);
       if (current()) {
         setSnapshot({ owner: token, garden: response });
         const applied = response.selectedPot === choice.pot && response.selectedStamp === choice.stamp;

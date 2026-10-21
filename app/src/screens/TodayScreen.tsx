@@ -11,6 +11,7 @@ import AddSupplementSheet from '../components/AddSupplementSheet';
 import DoseCheckRow from '../components/DoseCheckRow';
 import GardenProgressCard, { GardenCelebration } from '../garden/GardenProgressCard';
 import { gardenMilestone, type GardenState } from '../garden/types';
+import { readGarden } from '../garden/requests';
 import type { MainTabParamList, RootStackParamList } from '../navigation/AppNavigator';
 import type { ReminderConfirmation } from '../notifications/reminderConfirmation';
 import { colors } from '../theme';
@@ -76,7 +77,7 @@ export default function TodayScreen({ route, navigation: tabNavigation }: Bottom
     setIsLoading(true);
     const [homeResult, gardenResult] = await Promise.allSettled([
       apiRequest<HomeResponse>('/api/home', {}, token),
-      apiRequest<GardenState>('/api/garden', {}, token),
+      readGarden(token),
     ]);
     if (version !== requestVersion.current) return;
     if (homeResult.status === 'fulfilled') setHome(homeResult.value);
@@ -130,7 +131,7 @@ export default function TodayScreen({ route, navigation: tabNavigation }: Bottom
       setSavedMessage(clear ? '완료 기록을 취소했어요.' : '복용 기록을 저장했어요.');
       // A garden refresh failing must never roll back a successfully saved dose.
       try {
-        const next = await apiRequest<GardenState>('/api/garden', {}, token);
+        const next = await readGarden(token);
         if (version === requestVersion.current) acceptGarden(next);
       } catch {
         if (version === requestVersion.current) setGardenError(true);
