@@ -2,10 +2,9 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import type { ReactNode } from 'react';
 import * as SecureStore from './sessionStorage';
 import { Platform } from 'react-native';
-import { apiRequest, setUnauthorizedHandler } from '../api/client';
+import { apiRequest, beginAuthTransition, setUnauthorizedHandler } from '../api/client';
 import type { AuthResponse, MeResponse } from '../api/types';
 import { clearAllDoseReminders } from '../notifications/doseReminderNotifications';
-import { disconnectWebPush } from '../notifications/webPush';
 import { DESIGN_PREVIEW_TOKEN, isWebDesignPreview } from './designPreview';
 import { BROWSER_SESSION_TOKEN, browserWasRemembered, browserWasSignedOut, forgetBrowser, rememberBrowser, signOutBrowser } from './browserSession';
 import { restoreSession } from './sessionRestoration';
@@ -17,6 +16,7 @@ type AuthContextValue = {
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  closeDeletedAccount: () => Promise<void>;
 };
 const TOKEN_KEY = 'pill.auth.token';
 const EMAIL_KEY = 'pill.auth.email';
@@ -54,6 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const operation = useRef(0);
 
   const clearLocalSession = useCallback(async () => {
+    beginAuthTransition();
     operation.current += 1;
     if (DESIGN_PREVIEW_ENABLED) {
       setToken(DESIGN_PREVIEW_TOKEN);
@@ -128,9 +129,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setEmail(response.email);
   }, []);
 
-  const value = useMemo<AuthContextValue>(() => ({
+  const value = useMemo<AuthContextValue>(() => {
+    const authenticatedOperation = operation.current;
+    return ({
     token, email, isLoading,
     login: async (nextEmail, password) => {
+      beginAuthTransition();
       const expectedOperation = ++operation.current;
       const response = await apiRequest<AuthResponse>('/api/auth/login', {
         method: 'POST', body: JSON.stringify({ email: nextEmail.trim(), password }),
@@ -138,6 +142,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await storeAuth(response, expectedOperation);
     },
     signup: async (nextEmail, password) => {
+      beginAuthTransition();
       const expectedOperation = ++operation.current;
       const response = await apiRequest<AuthResponse>('/api/auth/signup', {
         method: 'POST', body: JSON.stringify({ email: nextEmail.trim(), password }),
@@ -145,15 +150,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await storeAuth(response, expectedOperation);
     },
     logout: async () => {
-      operation.current += 1;
-      if (Platform.OS === 'web') {
-        signOutBrowser();
-        await ignoreFailure(() => disconnectWebPush());
-      }
+      beginAuthTransition();
+      const logoutOperation = ++operation.current;
+      if (Platform.OS === 'web') signOutBrowser();
       if (token) await revokeSession(token);
-      await clearLocalSession();
+      if (operation.current === logoutOperation) await clearLocalSession();
     },
-  }), [clearLocalSession, email, isLoading, storeAuth, token]);
+    closeDeletedAccount: async () => {
+      // The server has already deleted/revoked this account's sessions. Clean
+      // only this device; another authenticated API call would be misleading.
+      if (operation.current !== authenticatedOperation) return;
+      beginAuthTransition();
+      const cleanupOperation = ++operation.current;
+      if (Platform.OS === 'web') signOutBrowser();
+      // Server-side deletion/revocation stops delivery. Removing a shared browser
+      // subscription here could disconnect an account signed in in another tab.
+      if (operation.current === cleanupOperation) await clearLocalSession();
+    },
+  });
+  }, [clearLocalSession, email, isLoading, storeAuth, token]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 export function useAuth() {

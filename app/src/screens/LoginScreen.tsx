@@ -98,6 +98,10 @@ export default function LoginScreen({ navigation }: Props) {
               {passwordError ? <Text accessibilityLiveRegion="polite" style={styles.error}>{passwordError}</Text> : null}
             </View>
             {formError ? <Text accessibilityLiveRegion="polite" style={styles.error}>{formError}</Text> : null}
+            <Pressable accessibilityRole="button" onPress={() => navigation.navigate('PasswordReset', { email: email.trim() })}
+              style={{ minHeight: 44, alignSelf: 'flex-end', justifyContent: 'center' }}>
+              <Text style={styles.linkText}>비밀번호를 잊으셨나요?</Text>
+            </Pressable>
             <RitualAction
               fullWidth
               label="로그인"

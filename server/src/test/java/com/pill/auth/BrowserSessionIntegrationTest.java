@@ -68,18 +68,17 @@ class BrowserSessionIntegrationTest {
         var cookie = cookie(signup());
         when(clock.instant()).thenReturn(NOW.plus(Duration.ofDays(179)));
         mvc.perform(get("/api/auth/me").cookie(cookie).header(BrowserSession.CLIENT_HEADER,"web"))
-            .andExpect(status().isOk()).andExpect(header().string("Set-Cookie",
-                org.hamcrest.Matchers.containsString("Max-Age=86400")));
+            .andExpect(status().isOk()).andExpect(header().doesNotExist("Set-Cookie"));
         when(clock.instant()).thenReturn(NOW.plus(Duration.ofDays(180)));
         mvc.perform(get("/api/auth/me").cookie(cookie)).andExpect(status().isUnauthorized())
-            .andExpect(header().string("Set-Cookie",org.hamcrest.Matchers.containsString("Max-Age=0")));
+            .andExpect(header().doesNotExist("Set-Cookie"));
     }
 
-    @Test void logoutRevokesSessionAndClearsCookie() throws Exception {
+    @Test void logoutRevokesSessionWithoutOverwritingANewerBrowserCookie() throws Exception {
         var cookie = cookie(signup());
         mvc.perform(post("/api/auth/logout").cookie(cookie).header(BrowserSession.CLIENT_HEADER,"web"))
             .andExpect(status().isNoContent())
-            .andExpect(header().string("Set-Cookie",org.hamcrest.Matchers.containsString("Max-Age=0")));
+            .andExpect(header().doesNotExist("Set-Cookie"));
         assertThat(sessions.findAll()).singleElement().satisfies(session -> assertThat(session.getRevokedAt()).isEqualTo(NOW));
         mvc.perform(get("/api/auth/me").cookie(cookie)).andExpect(status().isUnauthorized());
     }
@@ -104,6 +103,18 @@ class BrowserSessionIntegrationTest {
             mvc.perform(get(path).cookie(invalid)).andExpect(status().isOk());
         }
         mvc.perform(get("/api/auth/me").cookie(invalid)).andExpect(status().isUnauthorized());
+    }
+
+    @Test void oldSessionResponsesCannotOverwriteOrExpireANewerAccountsCookie() throws Exception {
+        var old = cookie(signup());
+        // A different browser login may complete while the first account still
+        // has identity or API requests in flight. Those responses cannot set cookies.
+        var current = cookie(signup());
+        mvc.perform(get("/api/auth/me").cookie(old).header(BrowserSession.CLIENT_HEADER,"web"))
+            .andExpect(status().isOk()).andExpect(header().doesNotExist("Set-Cookie"));
+        mvc.perform(get("/api/auth/me").cookie(new Cookie(BrowserSession.COOKIE,"invalid-old-session")))
+            .andExpect(status().isUnauthorized()).andExpect(header().doesNotExist("Set-Cookie"));
+        mvc.perform(get("/api/auth/me").cookie(current)).andExpect(status().isOk());
     }
 
     @Test void anExpiredCookieDoesNotBlockAUserFromSigningInAgain() throws Exception {

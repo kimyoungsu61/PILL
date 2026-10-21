@@ -62,16 +62,17 @@ public class AuthController {
 
     @PostMapping("/logout")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void logout(@AuthenticationPrincipal SessionPrincipal principal, HttpServletResponse response) {
+    public void logout(@AuthenticationPrincipal SessionPrincipal principal) {
         authService.logout(principal.sessionId());
-        BrowserSession.clear(response);
+        // A delayed logout response must not erase a newer login cookie in another tab.
     }
 
     @GetMapping("/me")
     public MeResponse me(@AuthenticationPrincipal SessionPrincipal principal, HttpServletRequest request,
                          HttpServletResponse response) {
-        if (BrowserSession.requested(request)) {
-            // Upgrade an existing active login without replacing the session used by web reminders.
+        if (BrowserSession.requested(request) && request.getHeader("Authorization") != null) {
+            // Only explicit legacy bearer migration writes a cookie. Ordinary
+            // identity probes may finish after a different account signs in.
             BrowserSession.write(response, BrowserSession.presentedToken(request),
                 sessions.remember(principal.sessionId()), clock.instant());
         }
