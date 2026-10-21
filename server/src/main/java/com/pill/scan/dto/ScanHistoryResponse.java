@@ -27,7 +27,8 @@ public record ScanHistoryResponse(
         int ingredientCount,
         int reviewIngredientCount,
         boolean hasWarnings,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        com.pill.scan.ScanRecognition recognition
     ) {
     }
 }

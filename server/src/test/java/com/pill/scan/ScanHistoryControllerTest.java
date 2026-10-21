@@ -105,6 +105,7 @@ class ScanHistoryControllerTest {
         var scan = scans.save(new SupplementScan(user, "{}", "PROCESSING"));
         scan.complete("{}", """
             {
+              "recognition":{"category":"SUPPLEMENT","displayName":"영양제","confidence":0.99,"messageKo":"영양제로 확인했어요."},
               "brandName": "Test Lab",
               "productName": "%s",
               "suggestedUseOriginal": "Take once daily",

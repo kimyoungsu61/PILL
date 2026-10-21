@@ -16,7 +16,8 @@ public record ScanResultResponse(
     List<Ingredient> ingredients,
     com.fasterxml.jackson.databind.JsonNode research,
     String servingBasisKo,
-    com.fasterxml.jackson.databind.JsonNode productInformation
+    com.fasterxml.jackson.databind.JsonNode productInformation,
+    com.pill.scan.ScanRecognition recognition
 ) {
     public record Ingredient(
         String name,

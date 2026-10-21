@@ -15,7 +15,7 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 class GeminiSearchTest {
     private final ObjectMapper mapper = new ObjectMapper();
     private static final String ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
-    private static final String LABEL = "{\"brandName\":\"Example\",\"productName\":\"Vitamin\",\"ingredients\":[],\"originalLabelText\":\"Example Vitamin 60 capsules\"}";
+    private static final String LABEL = "{\"recognition\":{\"category\":\"SUPPLEMENT\",\"displayName\":\"영양제\",\"confidence\":0.99,\"messageKo\":\"영양제로 확인했어요.\"},\"brandName\":\"Example\",\"productName\":\"Vitamin\",\"ingredients\":[],\"originalLabelText\":\"Example Vitamin 60 capsules\"}";
     private static final String REPORT = """
         {"matchStatus":"MATCHED","matchReasonKo":"같은 규격의 후보","candidate":{
         "brandName":"Example","productName":"Vitamin","servingBasisKo":"1정당",

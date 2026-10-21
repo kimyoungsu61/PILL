@@ -136,7 +136,8 @@ public class ScanService {
             .filter(Objects::nonNull)
             .toList();
         var displayName = supplement == null
-            ? SupplementDisplayName.choose(normalized.productName(), ingredientContext)
+            ? (!normalized.recognition().registrationAllowed() && !normalized.recognition().displayName().isBlank()
+                ? normalized.recognition().displayName() : SupplementDisplayName.choose(normalized.productName(), ingredientContext))
             : text(supplement.getDisplayNameKo());
         var reviewIngredientCount = (int) normalized.ingredients().stream()
             .filter(IngredientResult::needsReview)
@@ -154,7 +155,8 @@ public class ScanService {
             normalized.ingredients().size(),
             reviewIngredientCount,
             !text(normalized.warningsKo()).isBlank() || !text(normalized.warningsOriginal()).isBlank(),
-            scan.getCreatedAt()
+            scan.getCreatedAt(),
+            normalized.recognition()
         );
     }
 
@@ -176,6 +178,10 @@ public class ScanService {
         }
         garden.prepareChange(userId);
         var scan = findUserScan(userId, scanId);
+        if (!"COMPLETED".equals(scan.getStatus())
+            || !normalizedForHistory(scan).recognition().registrationAllowed()) {
+            throw new ScanNotRegisterableException();
+        }
         var doseTimes = doseTimes(request);
         var supplement = new UserSupplement(
             scan.getUser(),
@@ -219,9 +225,12 @@ public class ScanService {
             if (root.isTextual()) {
                 root = OBJECT_MAPPER.readTree(stripMarkdownFence(root.asText()));
             }
+            if (root == null || !root.isObject()) throw new IllegalArgumentException("invalid Gemini JSON object");
+            var recognition = ScanRecognition.from(root.path("recognition"));
+            var allowed = recognition.registrationAllowed();
             var ingredients = new ArrayList<IngredientResult>();
             var ingredientsNode = root.path("ingredients");
-            if (ingredientsNode.isArray()) {
+            if (allowed && ingredientsNode.isArray()) {
                 var inspected = 0;
                 for (JsonNode ingredient : ingredientsNode) {
                     if (inspected++ >= MAX_INGREDIENTS) {
@@ -245,17 +254,18 @@ public class ScanService {
 
             return new NormalizedScan(
                 textValue(root, "brandName", 255),
-                normalizedProductName(root, ingredients),
-                textValue(root, "suggestedUseOriginal", 10_000),
-                textValue(root, "suggestedUseKo", 10_000),
-                textValue(root, "warningsOriginal", 10_000),
-                textValue(root, "warningsKo", 10_000),
+                allowed ? normalizedProductName(root, ingredients) : textValue(root, "productName", 255),
+                allowed ? textValue(root, "suggestedUseOriginal", 10_000) : "",
+                allowed ? textValue(root, "suggestedUseKo", 10_000) : "",
+                allowed ? textValue(root, "warningsOriginal", 10_000) : "",
+                allowed ? textValue(root, "warningsKo", 10_000) : "",
                 textValue(root, "originalLabelText", 20_000),
-                recommendedDoseTime(root, ingredients),
+                allowed ? recommendedDoseTime(root, ingredients) : "",
                 List.copyOf(ingredients),
-                root.path("research").isObject() ? root.path("research") : null,
-                textValue(root, "servingBasisKo", 255),
-                root.path("productInformation").isObject() ? root.path("productInformation") : null
+                allowed && root.path("research").isObject() ? root.path("research") : null,
+                allowed ? textValue(root, "servingBasisKo", 255) : "",
+                allowed && root.path("productInformation").isObject() ? root.path("productInformation") : null,
+                recognition
             );
         } catch (JsonProcessingException ex) {
             throw new IllegalArgumentException("invalid Gemini JSON", ex);
@@ -291,12 +301,13 @@ public class ScanService {
                 .toList(),
             normalized.research(),
             normalized.servingBasisKo(),
-            normalized.productInformation()
+            normalized.productInformation(),
+            normalized.recognition()
         );
     }
 
     private NormalizedScan emptyScan() {
-        return new NormalizedScan("", "", "", "", "", "", "", "", List.of(), null, "", null);
+        return new NormalizedScan("", "", "", "", "", "", "", "", List.of(), null, "", null, ScanRecognition.unknown());
     }
 
     private String imageMetadata(ValidatedImage frontImage, ValidatedImage backImage) {
@@ -543,7 +554,8 @@ public class ScanService {
         List<IngredientResult> ingredients,
         JsonNode research,
         String servingBasisKo,
-        JsonNode productInformation
+        JsonNode productInformation,
+        ScanRecognition recognition
     ) {
     }
 

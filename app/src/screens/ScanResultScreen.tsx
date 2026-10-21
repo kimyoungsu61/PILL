@@ -13,6 +13,7 @@ import { enableRegisteredSupplementReminders } from '../notifications/registrati
 import { contentRailWidth } from '../utils/responsiveLayout';
 import { cleanScanText, doseCountSummaryText, doseTimeSummaryText, ingredientAmountText } from './ScanResultScreen.helpers';
 import { scanResultPresentation } from './scanResultPresentation';
+import { scanRecognitionPresentation } from './scanRecognitionPresentation';
 import { colors } from '../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ScanResult'>;
@@ -29,6 +30,7 @@ export default function ScanResultScreen({ navigation, route }: Props) {
   const insets = useSafeAreaInsets();
   const { result, imageUri } = route.params;
   const presentation = useMemo(() => scanResultPresentation(result), [result]);
+  const recognition = scanRecognitionPresentation(result);
   const [brandName, setBrandName] = useState(presentation.brandName);
   const [productName, setProductName] = useState(presentation.productName);
   const [suggestedUseKo, setSuggestedUseKo] = useState(cleanScanText(presentation.suggestedUseKo));
@@ -70,10 +72,15 @@ export default function ScanResultScreen({ navigation, route }: Props) {
   }
 
   function openManualRegistration() {
+    if (!recognition.canRegister) return;
     navigation.navigate('ManualSupplement', { brandName, productName, suggestedUseKo, doseTimes, imageUri });
   }
 
   function requestSave() {
+    if (!recognition.canRegister) {
+      setError(recognition.blockedReason);
+      return;
+    }
     if (!productName.trim()) {
       setShowEdit(true);
       setError('제품명을 입력한 뒤 저장해 주세요.');
@@ -93,6 +100,10 @@ export default function ScanResultScreen({ navigation, route }: Props) {
 
   async function save() {
     if (saveInFlight.current) return;
+    if (!recognition.canRegister) {
+      setError(recognition.blockedReason);
+      return;
+    }
     if (!token) {
       setError('로그인이 필요합니다.');
       return;
@@ -139,24 +150,25 @@ export default function ScanResultScreen({ navigation, route }: Props) {
         <View style={[styles.rail, { maxWidth: contentRailWidth(width) }]}>
           <View style={styles.hero}>
             <View style={styles.heroTop}>
-              <View style={styles.heroBadge}><Text style={styles.heroBadgeText}>제품 정보</Text></View>
-              <Pressable accessibilityRole="button" accessibilityLabel="제품 정보 수정" accessibilityState={{ expanded: showEdit }} onPress={() => setShowEdit((value) => !value)} style={styles.heroEdit}>
+              <View style={styles.heroBadge}><Text style={styles.heroBadgeText}>{recognition.canRegister ? '제품 정보' : '촬영한 대상'}</Text></View>
+              {recognition.canRegister ? <Pressable accessibilityRole="button" accessibilityLabel="제품 정보 수정" accessibilityState={{ expanded: showEdit }} onPress={() => setShowEdit((value) => !value)} style={styles.heroEdit}>
                 <Pencil size={14} color={palette.cobalt} />
                 <Text style={styles.heroEditText}>정보 수정</Text>
-              </Pressable>
+              </Pressable> : null}
             </View>
             <View style={styles.heroMain}>
               {imageUri
                 ? <Image accessibilityLabel="촬영한 제품 사진" source={{ uri: imageUri }} style={styles.productImage} />
                 : <View style={styles.imagePlaceholder}><Text style={styles.imagePlaceholderText}>PILL</Text></View>}
               <View style={styles.heroCopy}>
-                <Text style={styles.heroBrand}>{brandName || '회사·브랜드 정보 미입력'}</Text>
-                <Text style={styles.heroName}>{productName || '제품명을 확인해 주세요'}</Text>
+                {recognition.canRegister ? <Text style={styles.heroBrand}>{brandName || '회사·브랜드 정보 미입력'}</Text> : null}
+                <Text style={styles.heroName}>{recognition.canRegister ? productName || '제품명을 확인해 주세요' : recognition.displayName}</Text>
 
               </View>
             </View>
           </View>
 
+          {recognition.canRegister ? <>
           <View style={styles.evidenceBar}>
             <View style={styles.evidenceDot} />
             <Text style={styles.evidenceText}>저장 전 제품 라벨과 성분·함량을 확인해 주세요.</Text>
@@ -253,17 +265,29 @@ export default function ScanResultScreen({ navigation, route }: Props) {
           <Pressable accessibilityRole="button" onPress={openManualRegistration} style={styles.manualLink}>
             <Text style={styles.manualLinkText}>찾은 제품이 다른가요? 직접 입력하기</Text><ChevronRight size={16} color={palette.cobalt} />
           </Pressable>
+          </> : <>
+            <View style={styles.recognitionCard}>
+              <Text style={styles.recognitionTitle}>{recognition.title}</Text>
+              <Text style={styles.recognitionMessage}>{recognition.message}</Text>
+            </View>
+            <Pressable accessibilityRole="button" onPress={() => navigation.navigate('ImageInput')} style={styles.retakeButton}>
+              <RotateCcw size={19} color={palette.cobalt} />
+              <Text style={styles.retakeText}>다른 사진 촬영하기</Text>
+              <ChevronRight size={18} color={palette.cobalt} />
+            </Pressable>
+          </>}
           {error ? <Text accessibilityLiveRegion="polite" style={styles.error}>{error}</Text> : null}
         </View>
       </ScrollView>
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) + 6 }]}>
-        <Pressable accessibilityRole="button" accessibilityState={{ disabled: isSaving }} disabled={isSaving} onPress={requestSave} style={({ pressed }) => [styles.saveButton, pressed && styles.pressed]}>
+        {!recognition.canRegister ? <Text style={styles.footerHint}>{recognition.blockedReason}</Text> : null}
+        <Pressable accessibilityRole="button" accessibilityState={{ disabled: isSaving || !recognition.canRegister }} disabled={isSaving || !recognition.canRegister} onPress={requestSave} style={({ pressed }) => [styles.saveButton, !recognition.canRegister && styles.saveButtonDisabled, pressed && styles.pressed]}>
           {isSaving ? <ActivityIndicator color={palette.white} /> : <Text style={styles.saveText}>내 영양제로 저장하기</Text>}
-          {!isSaving ? <ChevronRight size={20} color={palette.white} /> : null}
+          {!isSaving && recognition.canRegister ? <ChevronRight size={20} color={palette.white} /> : null}
         </Pressable>
       </View>
-      {showIngredientEditor ? <IngredientEditor ingredients={ingredients} servingBasisKo={servingBasisKo} width={width} onClose={() => setShowIngredientEditor(false)} onApply={(items, basis) => { setIngredients(items); setServingBasisKo(basis); setShowIngredientEditor(false); }} /> : null}
-      <Modal animationType="fade" transparent visible={saveMissing.length > 0} onRequestClose={() => setSaveMissing([])}>
+      {recognition.canRegister && showIngredientEditor ? <IngredientEditor ingredients={ingredients} servingBasisKo={servingBasisKo} width={width} onClose={() => setShowIngredientEditor(false)} onApply={(items, basis) => { setIngredients(items); setServingBasisKo(basis); setShowIngredientEditor(false); }} /> : null}
+      <Modal animationType="fade" transparent visible={recognition.canRegister && saveMissing.length > 0} onRequestClose={() => setSaveMissing([])}>
         <View style={styles.confirmOverlay}><View style={styles.confirmCard}>
           <Text style={styles.cardTitle}>미입력 정보 확인</Text>
           <Text style={styles.secondaryText}>{saveMissing.join(' · ')} 정보가 없습니다. 미입력 상태로 저장하시겠습니까?</Text>
@@ -271,7 +295,7 @@ export default function ScanResultScreen({ navigation, route }: Props) {
           <Pressable accessibilityRole="button" onPress={() => { setSaveMissing([]); void save(); }} style={styles.saveButton}><Text style={styles.saveText}>미입력 상태로 저장</Text></Pressable>
         </View></View>
       </Modal>
-      <Modal animationType="slide" onRequestClose={() => setShowIngredients(false)} visible={showIngredients}>
+      <Modal animationType="slide" onRequestClose={() => setShowIngredients(false)} visible={recognition.canRegister && showIngredients}>
         <View style={[styles.modalScreen, { paddingTop: Math.max(insets.top, 16), paddingBottom: Math.max(insets.bottom, 16) }]}>
           <View style={[styles.modalRail, { maxWidth: contentRailWidth(width) }]}>
             <View style={styles.modalHeader}>
@@ -385,8 +409,15 @@ const styles = StyleSheet.create({
   input: { borderColor: palette.line, borderWidth: 1, borderRadius: 11, minHeight: 45, paddingHorizontal: 12, color: palette.ink, fontSize: 14 },
   textArea: { borderColor: palette.line, borderWidth: 1, borderRadius: 11, minHeight: 68, padding: 12, color: palette.ink, fontSize: 14, textAlignVertical: 'top' },
   error: { color: '#B24242', fontSize: 13, lineHeight: 19 },
+  recognitionCard: { backgroundColor: palette.surface, borderRadius: 16, padding: 22, gap: 14 },
+  recognitionTitle: { color: palette.ink, fontSize: 18, fontWeight: '700', lineHeight: 26 },
+  recognitionMessage: { color: palette.ink, fontSize: 16, lineHeight: 27 },
+  retakeButton: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 56, paddingHorizontal: 18, borderRadius: 15, backgroundColor: palette.cobaltSoft },
+  retakeText: { flex: 1, color: palette.cobalt, fontSize: 15, fontWeight: '600' },
   footer: { backgroundColor: palette.white, borderTopColor: palette.line, borderTopWidth: 1, paddingHorizontal: 20, paddingTop: 10 },
+  footerHint: { color: palette.muted, fontSize: 12, lineHeight: 18, textAlign: 'center', marginBottom: 8 },
   saveButton: { minHeight: 54, borderRadius: 15, backgroundColor: palette.cobalt, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  saveButtonDisabled: { backgroundColor: '#A5ADBF' },
   saveText: { color: palette.white, fontSize: 15, fontWeight: '700' },
   modalScreen: { backgroundColor: palette.canvas, flex: 1, paddingHorizontal: 20 },
   modalRail: { alignSelf: 'center', flex: 1, width: '100%', gap: 13 },

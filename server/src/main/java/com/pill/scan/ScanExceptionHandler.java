@@ -40,6 +40,14 @@ class ScanExceptionHandler {
             .body(new ApiError("INVALID_REQUEST", "입력값을 확인해 주세요."));
     }
 
+    @ExceptionHandler(ScanNotRegisterableException.class)
+    ResponseEntity<ApiError> handleNotRegisterable() {
+        return ResponseEntity.badRequest().body(new ApiError(
+            "SCAN_NOT_REGISTERABLE",
+            "영양제로 확인된 제품만 등록할 수 있어요. 제품을 다시 촬영해 주세요."
+        ));
+    }
+
     @ExceptionHandler(RestClientException.class)
     ResponseEntity<ApiError> handleGeminiClientFailure() {
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)

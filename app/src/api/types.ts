@@ -116,6 +116,7 @@ export type SupplementDetailResponse = {
 export type ScanStatus = 'PROCESSING' | 'COMPLETED' | 'FAILED';
 
 export type ScanHistoryEntry = {
+  recognition?: ScanRecognition;
   scanId: number;
   status: ScanStatus;
   brandName?: string;
@@ -186,6 +187,7 @@ export type ScanResearch = {
 };
 
 export type ScanResult = {
+  recognition?: ScanRecognition;
   productInformation?: ProductInformation;
   servingBasisKo?: string;
   research?: ScanResearch;
@@ -200,4 +202,12 @@ export type ScanResult = {
   originalLabelText: string;
   recommendedDoseTime: string;
   ingredients: ScanIngredient[];
+};
+
+export type ScanRecognition = {
+  category: 'SUPPLEMENT' | 'ALCOHOL' | 'BEVERAGE' | 'FOOD' | 'MEDICINE' | 'OTHER' | 'UNKNOWN';
+  displayName: string;
+  confidence: number;
+  messageKo: string;
+  registrationAllowed: boolean;
 };
