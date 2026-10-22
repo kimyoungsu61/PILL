@@ -61,7 +61,7 @@ public class ScanService {
         this.garden = garden;
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = ScanAnalysisFailedException.class)
     public ScanResultResponse analyze(Long userId, ValidatedImage frontImage, ValidatedImage backImage) {
         if (frontImage == null) {
             throw new InvalidImageException("front image is required");
@@ -70,6 +70,9 @@ public class ScanService {
             .orElseThrow(() -> new IllegalArgumentException("user not found"));
         var scan = scans.save(new SupplementScan(user, imageMetadata(frontImage, backImage), "PROCESSING"));
 
+        NormalizedScan normalized;
+        String normalizedJson;
+        String rawResultJson;
         try {
             var rawJson = gemini.analyzeLabel(
                 frontImage.bytes(),
@@ -77,16 +80,19 @@ public class ScanService {
                 backImage == null ? null : backImage.bytes(),
                 backImage == null ? null : backImage.contentType()
             );
-            var normalized = normalize(rawJson);
-            var normalizedJson = normalizedJson(normalized);
-            scan.complete(rawGeminiTextJson(rawJson), normalizedJson);
-            scans.save(scan);
-            return toResponse(scan.getId(), scan.getStatus(), normalized);
+            normalized = normalize(rawJson);
+            normalizedJson = normalizedJson(normalized);
+            rawResultJson = rawGeminiTextJson(rawJson);
         } catch (RuntimeException ex) {
             scan.fail("analysis failed");
             scans.save(scan);
-            throw ex;
+            // Commit the failed attempt while still reporting a provider error to the caller.
+            throw new ScanAnalysisFailedException(ex);
         }
+        // Persistence errors must retain normal rollback behavior.
+        scan.complete(rawResultJson, normalizedJson);
+        scans.save(scan);
+        return toResponse(scan.getId(), scan.getStatus(), normalized);
     }
 
     @Transactional(readOnly = true)

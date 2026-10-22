@@ -87,6 +87,12 @@ public class GeminiClient {
             ingredients, warningsOriginal, warningsKo, originalLabelText,
             recommendedDoseTime, servingBasisKo, otherIngredients, storageKo, recognition.
             Each ingredient must include name, amount, unit, originalText, confidence.
+            Extract concise factual notes, not a transcription of the packaging.
+            originalLabelText should contain only product identity, serving basis and nutrient facts.
+            Preserve exact visible quantities and units, but omit marketing paragraphs, testimonials,
+            promotional descriptions and legal boilerplate. Do not reproduce whole label paragraphs.
+            Keep ingredient originalText to its nutrient name, amount and unit.
+            Summarize visible cautions briefly in your own words; retain all safety-relevant facts.
             ingredients contains ONLY active nutrients listed in Supplement Facts; do not put
             capsule materials, coating, fillers or Other ingredients into quantified nutrient rows.
             otherIngredients is a string array of visible inactive ingredients, with no invented amounts.

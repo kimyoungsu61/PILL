@@ -57,7 +57,7 @@ class ScanExceptionHandler {
             ));
     }
 
-    @ExceptionHandler(GeminiResponseException.class)
+    @ExceptionHandler({GeminiResponseException.class, ScanAnalysisFailedException.class})
     ResponseEntity<ApiError> handleGeminiResponseFailure() {
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
             .body(new ApiError(

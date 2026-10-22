@@ -14,6 +14,8 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -36,6 +38,34 @@ class ScanServiceTest {
     @Autowired UserSupplementRepository supplements;
     @Autowired DoseScheduleRepository doseSchedules;
     @Autowired GeminiClient gemini;
+
+    @Test
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    void providerFailureCommitsFailedHistoryWithoutStoringProviderDetails() {
+        var user = users.saveAndFlush(new User("failed-scan@example.com", "hash"));
+        when(gemini.analyzeLabel(any(byte[].class), eq("image/png"), isNull(), isNull()))
+            .thenThrow(new com.pill.gemini.GeminiResponseException("private provider detail"));
+        try {
+            assertThatThrownBy(() -> scans.analyze(user.getId(), image("front.png", "image/png", "front"), null))
+                .isInstanceOf(ScanAnalysisFailedException.class)
+                .hasMessage("analysis failed");
+
+            // There is no test transaction: this reads a committed row after the service threw.
+            var saved = scanRepository.findTop100ByUserIdAndStatusNotOrderByCreatedAtDesc(user.getId(), "MANUAL");
+            assertThat(saved).singleElement().satisfies(scan -> {
+                assertThat(scan.getStatus()).isEqualTo("FAILED");
+                assertThat(scan.getFailureReason()).isEqualTo("analysis failed");
+                assertThat(scan.getRawAiResponseJson()).isNull();
+                assertThat(scan.getNormalizedAiResultJson()).isNull();
+                assertThat(scans.get(user.getId(), scan.getId()).recognition().registrationAllowed()).isFalse();
+                assertThatThrownBy(() -> scans.get(-1L, scan.getId())).hasMessage("scan not found");
+            });
+            assertThat(scans.history(user.getId()).summary().failed()).isEqualTo(1);
+        } finally {
+            scanRepository.deleteAll(scanRepository.findTop100ByUserIdAndStatusNotOrderByCreatedAtDesc(user.getId(), "MANUAL"));
+            users.deleteById(user.getId());
+        }
+    }
 
     @Test
     void analyzeStoresRawAndNormalizedGeminiResultForCurrentUser() {
