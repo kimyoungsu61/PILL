@@ -12,8 +12,8 @@ self.addEventListener('push', event => {
     let target;try { target = new URL(data.url || '/', self.location.origin); } catch { return; }
     if (target.origin !== self.location.origin || target.pathname !== '/') return;
     const supplementId = Number(data.supplementId);
-    await self.registration.showNotification(expired ? '영양제, 챙겨 드셨나요? 💊' : payload.title.slice(0, 80), {
-      body: expired ? '알림 시간이 조금 지났어요. 드셨다면 PILL에서 체크해 주세요.' : payload.body.slice(0, 240), icon: '/icons/pill-192.png', badge: '/icons/pill-192.png',
+    await self.registration.showNotification(expired ? '영양제 기록을 남겨 주세요 💊' : payload.title.slice(0, 80), {
+      body: expired ? '알림 시간이 조금 지났어요. 이번 시간의 상태를 PILL에 기록해 주세요.' : payload.body.slice(0, 240), icon: '/icons/pill-192.png', badge: '/icons/pill-192.png',
       tag: typeof payload.tag === 'string' ? payload.tag.slice(0, 100) : 'pill-reminder',
       data: { url: target.href, supplementId: Number.isSafeInteger(supplementId) && supplementId > 0 ? supplementId : null,
         doseDate: data.doseDate, doseTime: data.doseTime },

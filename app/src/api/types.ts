@@ -12,7 +12,7 @@ export type ApiError = {
   message: string;
 };
 
-export type DoseStatus = 'TAKEN' | 'SKIPPED';
+export type DoseStatus = 'TAKEN' | 'SKIPPED' | 'UNKNOWN';
 
 export type DoseHistoryStatus = DoseStatus | 'MISSED';
 
@@ -75,6 +75,7 @@ export type DoseHistoryResponse = {
     total: number;
     taken: number;
     skipped: number;
+    unknown?: number;
     missed: number;
     completionRate: number;
   };

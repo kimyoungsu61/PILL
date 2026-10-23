@@ -5,17 +5,19 @@ import type { NavigationProp } from '@react-navigation/native';
 import { Bell, CheckCircle2, ChevronRight, Plus, X } from 'lucide-react-native';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { apiRequest } from '../api/client';
-import type { HomeResponse, TodayDose } from '../api/types';
+import type { DoseStatus, HomeResponse, TodayDose } from '../api/types';
 import { useAuth } from '../auth/AuthContext';
 import AddSupplementSheet from '../components/AddSupplementSheet';
 import DoseCheckRow from '../components/DoseCheckRow';
-import GardenProgressCard, { GardenCelebration } from '../garden/GardenProgressCard';
-import { gardenMilestone, type GardenState } from '../garden/types';
+import GardenProgressCard from '../garden/GardenProgressCard';
+import { useGardenGrowth } from '../garden/GardenGrowthContext';
+import type { GardenState } from '../garden/types';
 import { readGarden } from '../garden/requests';
 import type { MainTabParamList, RootStackParamList } from '../navigation/AppNavigator';
 import type { ReminderConfirmation } from '../notifications/reminderConfirmation';
 import { colors } from '../theme';
 import { applyTodayDoseStatus, clearTodayDoseStatus } from '../utils/todayDoseDisplay';
+import { isRecordedDose, summarizeDoseRecords } from '../utils/doseRecord';
 
 function timeLabel(value: string) {
   if (!/^\d{2}:\d{2}$/.test(value)) return '시간 미설정';
@@ -25,6 +27,7 @@ function timeLabel(value: string) {
 
 export default function TodayScreen({ route, navigation: tabNavigation }: BottomTabScreenProps<MainTabParamList, 'Today'>) {
   const { token } = useAuth();
+  const { observeGarden } = useGardenGrowth();
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const [home, setHome] = useState<HomeResponse>({ supplements: [], todayDoses: [] });
   const [error, setError] = useState('');
@@ -35,7 +38,6 @@ export default function TodayScreen({ route, navigation: tabNavigation }: Bottom
   const [garden, setGarden] = useState<GardenState | null>(null);
   const [gardenError, setGardenError] = useState(false);
   const [earnedStamp, setEarnedStamp] = useState(false);
-  const [celebration, setCelebration] = useState<GardenState | null>(null);
   const gardenRef = useRef<GardenState | null>(null);
   const [confirmation, setConfirmation] = useState<ReminderConfirmation | null>(null);
   const incomingConfirmation = route.params?.reminderConfirmation;
@@ -58,17 +60,17 @@ export default function TodayScreen({ route, navigation: tabNavigation }: Bottom
     });
     return Array.from(byTime);
   }, [doses]);
-  const done = doses.filter(dose => dose.status === 'TAKEN').length;
+  const recordSummary = useMemo(() => summarizeDoseRecords(doses), [doses]);
 
   const acceptGarden = useCallback((next: GardenState) => {
     const previous = gardenRef.current;
     const newlyEarned = Boolean(previous && next.todayEarned && next.totalStamps > previous.totalStamps);
-    if (gardenMilestone(previous, next)) setCelebration(next);
+    observeGarden(next);
     setEarnedStamp(newlyEarned);
     gardenRef.current = next;
     setGarden(next);
     setGardenError(false);
-  }, []);
+  }, [observeGarden]);
 
   const loadHome = useCallback(async () => {
     if (!token || posting.current) return;
@@ -108,15 +110,15 @@ export default function TodayScreen({ route, navigation: tabNavigation }: Bottom
     };
   }, [loadHome]));
 
-  async function toggleDose(dose: TodayDose) {
+  async function recordDose(dose: TodayDose, status?: DoseStatus) {
     if (!token || posting.current || isLoading) return;
     posting.current = true;
     const version = ++requestVersion.current;
     const previous = home;
-    const clear = dose.status === 'TAKEN';
+    const clear = status === undefined;
     setHome(current => ({ ...current, todayDoses: clear
       ? clearTodayDoseStatus(current.todayDoses, dose)
-      : applyTodayDoseStatus(current.todayDoses, dose, 'TAKEN') }));
+      : applyTodayDoseStatus(current.todayDoses, dose, status) }));
     setIsPosting(true);
     setError('');
     setSavedMessage('');
@@ -125,10 +127,10 @@ export default function TodayScreen({ route, navigation: tabNavigation }: Bottom
       const query = clear && dose.confirmedTime ? '?doseTime=' + encodeURIComponent(dose.confirmedTime) : '';
       await apiRequest<void>('/api/supplements/' + dose.supplementId + '/dose-logs' + query, {
         method: clear ? 'DELETE' : 'POST',
-        ...(clear ? {} : { body: JSON.stringify({ status: 'TAKEN', memo: '', doseTime: dose.confirmedTime }) }),
+        ...(clear ? {} : { body: JSON.stringify({ status, memo: '', doseTime: dose.confirmedTime }) }),
       }, token);
       if (version !== requestVersion.current) return;
-      setSavedMessage(clear ? '완료 기록을 취소했어요.' : '복용 기록을 저장했어요.');
+      setSavedMessage(clear ? '기록을 지웠어요. 받은 스탬프는 그대로예요.' : '기록을 저장했어요.');
       // A garden refresh failing must never roll back a successfully saved dose.
       try {
         const next = await readGarden(token);
@@ -186,7 +188,7 @@ export default function TodayScreen({ route, navigation: tabNavigation }: Bottom
             </Pressable>
           </View> : null}
 
-          <GardenProgressCard done={done} total={doses.length} loading={isLoading} garden={garden}
+          <GardenProgressCard summary={recordSummary} loading={isLoading} garden={garden}
             error={gardenError} earned={earnedStamp} onOpen={() => navigation.navigate('Garden')} onRetry={() => void loadHome()} />
 
           {error ? <View style={styles.error}>
@@ -205,7 +207,7 @@ export default function TodayScreen({ route, navigation: tabNavigation }: Bottom
           {groups.length ? groups.map(([time, timeDoses]) => (
             <View key={time || 'unset'} style={styles.timeGroup}>
               <View style={styles.timeHeading}>
-                <View style={[styles.timeDot, timeDoses.every(dose => dose.status === 'TAKEN') && styles.timeDotDone]} />
+                <View style={[styles.timeDot, timeDoses.every(dose => isRecordedDose(dose.status)) && styles.timeDotDone]} />
                 <Text style={styles.timeText}>{timeLabel(time)}</Text>
                 <View style={styles.timeLine} />
                 <Text style={styles.timeCount}>{timeDoses.length}개</Text>
@@ -214,7 +216,7 @@ export default function TodayScreen({ route, navigation: tabNavigation }: Bottom
                 {timeDoses.map((dose, index) => (
                   <View key={dose.supplementId + '-' + (dose.confirmedTime ?? 'default')} style={index ? styles.doseDivider : undefined}>
                     <DoseCheckRow dose={dose} showTime={false} disabled={isPosting || isLoading}
-                      onClear={() => void toggleDose(dose)} onTaken={() => void toggleDose(dose)}
+                      onClear={() => void recordDose(dose)} onRecord={status => void recordDose(dose, status)}
                       onOpen={() => navigation.navigate('SupplementDetail', { supplementId: dose.supplementId })} />
                   </View>
                 ))}
@@ -237,7 +239,6 @@ export default function TodayScreen({ route, navigation: tabNavigation }: Bottom
       </ScrollView>
       <AddSupplementSheet visible={showAdd} onClose={() => setShowAdd(false)}
         onScan={() => openAdd('ImageInput')} onManual={() => openAdd('ManualSupplement')} />
-      <GardenCelebration garden={celebration} onClose={() => setCelebration(null)} onOpen={() => { setCelebration(null); navigation.navigate('Garden'); }} />
     </>
   );
 }

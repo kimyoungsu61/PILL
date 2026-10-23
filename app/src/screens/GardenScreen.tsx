@@ -213,7 +213,7 @@ export default function GardenScreen() {
           <View style={styles.todayNote}>
             {garden.todayEarned && <Check size={15} color={colors.completed} strokeWidth={2.5} />}
             <Text style={[styles.todayText, garden.todayEarned && styles.todayEarned]}>
-              {garden.todayEarned ? '오늘의 스탬프가 담겼어요' : '오늘의 복용을 모두 완료하면 스탬프 하나'}
+              {garden.todayEarned ? '오늘의 스탬프가 담겼어요' : '오늘의 상태를 모두 기록하면 스탬프 하나'}
             </Text>
           </View>
         </RitualSurface>
@@ -313,7 +313,7 @@ export default function GardenScreen() {
           {collection.length === 0 ? (
             <RitualSurface style={styles.collectionEmpty}>
               <Text style={styles.collectionEmptyTitle}>첫 식물이 머물 자리를 비워뒀어요</Text>
-              <Text style={styles.body}>완료한 날 일곱 번을 모으면, 여기에 함께 남아요.</Text>
+              <Text style={styles.body}>기록한 날 일곱 번을 모으면, 여기에 함께 남아요.</Text>
             </RitualSurface>
           ) : (
             <>
@@ -334,9 +334,9 @@ export default function GardenScreen() {
         <View style={styles.explainer}>
           <Text style={styles.explainerTitle}>나의 속도로, 하루씩</Text>
           <Text style={styles.body}>
-            하루의 복용을 모두 완료하면 스탬프를 하나 받아요. 일곱 개를 모을 때마다 식물 하나가 완성되고, 새 씨앗을 키워요.
+            먹었는지, 못 먹었는지, 기억이 안 나는지 하루의 상태를 모두 기록하면 스탬프를 하나 받아요. 어떤 답이든 식물은 똑같이 자라요. 일곱 개를 모으면 식물 하나가 완성돼요.
           </Text>
-          <Text style={styles.explainerFootnote}>스탬프는 하루에 하나예요. 쉬어 가는 날에도 모은 기록은 그대로 남아요.</Text>
+          <Text style={styles.explainerFootnote}>스탬프는 하루에 하나예요. 기록을 나중에 고치거나 지워도 받은 스탬프와 화분은 그대로 남아요.</Text>
         </View>
       </View>
     </ScrollView>

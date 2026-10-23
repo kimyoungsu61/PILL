@@ -1,10 +1,5 @@
 import type { ExportDataResponse } from '../api/types';
-
-const doseStatusLabels: Record<string, string> = {
-  TAKEN: '복용 완료',
-  SKIPPED: '건너뜀',
-  MISSED: '미복용',
-};
+import { doseHistoryStatusLabel } from './DoseHistoryScreen.helpers';
 
 export function buildSupplementCsv(data: ExportDataResponse) {
   const rows: string[][] = [
@@ -35,7 +30,7 @@ export function buildDoseHistoryCsv(data: ExportDataResponse) {
       entry.doseDate,
       entry.doseTime || '',
       entry.displayNameKo || entry.productName || '',
-      doseStatusLabels[entry.status] || entry.status,
+      doseHistoryStatusLabel(entry.status),
       entry.memo || '',
       entry.checkedAt || '',
     ]),

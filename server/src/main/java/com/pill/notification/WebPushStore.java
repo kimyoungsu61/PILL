@@ -1,6 +1,7 @@
 package com.pill.notification;
 
 import com.pill.auth.SessionPrincipal;
+import com.pill.model.DoseStatus;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
@@ -103,7 +104,7 @@ public class WebPushStore {
             (rs,n) -> rs.getString(1), supplementId, date, time).stream().findFirst().orElse("");
     }
     public boolean recorded(long supplementId, LocalDate date, String time) {
-        return List.of("TAKEN", "SKIPPED").contains(doseStatus(supplementId, date, time));
+        return DoseStatus.isRecorded(doseStatus(supplementId, date, time));
     }
     public void cancelFollowUps(long supplementId, LocalDate date, String time) {
         db.update("""

@@ -1,5 +1,6 @@
 import type { ViewStyle } from 'react-native';
 import type { DoseStatus } from './api/types';
+import { doseRecordLabel, isRecordedDose } from './utils/doseRecord';
 
 const neutralColors = {
   background: '#F7F8FA',
@@ -115,23 +116,14 @@ export const type = {
 };
 
 export function doseStatusLabel(status?: DoseStatus) {
-  if (status === 'TAKEN') {
-    return '완료';
-  }
-  if (status === 'SKIPPED') {
-    return '건너뜀';
-  }
-  return '대기';
+  return doseRecordLabel(status);
 }
 
 export function doseStatusColors(status?: DoseStatus) {
-  if (status === 'TAKEN') {
+  if (isRecordedDose(status)) {
     return { background: colors.completedSoft, text: colors.completed };
   }
-  if (status === 'SKIPPED') {
-    return { background: colors.dangerSoft, text: colors.danger };
-  }
-  return { background: colors.activeSoft, text: colors.active };
+  return { background: colors.surfaceMuted, text: colors.muted };
 }
 
 export function supplementInitial(name?: string) {

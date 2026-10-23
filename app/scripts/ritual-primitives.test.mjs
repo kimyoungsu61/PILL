@@ -83,41 +83,75 @@ test('RitualAction renders its label with the semantic action typography token',
   assert.ok(Number(type.actionLabel.fontWeight) >= 700);
 });
 
-test('DoseCheckRow exposes an accessible 48px checkbox and separate detail action', async () => {
+test('DoseCheckRow keeps detail navigation separate from recording and clearing', async () => {
   const DoseCheckRow = await loadComponent('src/components/DoseCheckRow.tsx');
-  let taken = 0;
+  let recorded;
   let opened = 0;
   const element = DoseCheckRow({
     dose: { supplementId: 1, productName: '테스트 영양제', confirmedTime: '10:00' },
-    onTaken() { taken += 1; }, onClear() {}, onOpen() { opened += 1; },
+    onRecord(status) { recorded = status; }, onClear() {}, onOpen() { opened += 1; },
   });
-  const [, detail, checkbox] = element.props.children;
-  assert.equal(checkbox.props.accessibilityRole, 'checkbox');
-  assert.equal(checkbox.props.accessibilityState.checked, false);
-  assert.equal(checkbox.props['aria-checked'], false);
-  const target = StyleSheet.flatten(checkbox.props.style({ pressed: false }));
-  assert.ok(target.width >= 48 && target.height >= 48);
-  checkbox.props.onPress();
+  const [heading, actions] = element.props.children;
+  const [, detail, clear] = heading.props.children;
+  assert.equal(clear, null);
+  assert.equal(actions.props.status, undefined);
+  assert.equal(actions.props.name, '테스트 영양제');
+  actions.props.onRecord('UNKNOWN');
   detail.props.onPress();
-  assert.equal(taken, 1);
+  assert.equal(recorded, 'UNKNOWN');
   assert.equal(opened, 1);
 });
 
-test('DoseCheckRow keeps completion reversible and blocks taps while saving', async () => {
+test('DoseCheckRow exposes clearing for any recorded answer and blocks it while saving', async () => {
   const DoseCheckRow = await loadComponent('src/components/DoseCheckRow.tsx');
   let cleared = 0;
   const element = DoseCheckRow({
-    dose: { supplementId: 1, productName: '테스트 영양제', status: 'TAKEN' },
-    disabled: true, onTaken() {}, onClear() { cleared += 1; }, onOpen() {},
+    dose: { supplementId: 1, productName: '테스트 영양제', status: 'UNKNOWN' },
+    disabled: true, onRecord() {}, onClear() { cleared += 1; }, onOpen() {},
   });
-  const [time, , checkbox] = element.props.children;
+  const [heading, actions] = element.props.children;
+  const [time, , clear] = heading.props.children;
   assert.equal(time.props.children, '미설정');
-  assert.equal(checkbox.props.accessibilityState.checked, true);
-  assert.equal(checkbox.props['aria-checked'], true);
-  assert.equal(checkbox.props.disabled, true);
-  assert.match(checkbox.props.accessibilityLabel, /완료 취소/);
-  checkbox.props.onPress();
-  assert.equal(cleared, 1);
+  assert.equal(clear.props.disabled, true);
+  assert.equal(actions.props.disabled, true);
+  assert.match(clear.props.accessibilityLabel, /기록 지우기/);
+  clear.props.onPress();
+  assert.equal(cleared, 0);
+});
+
+test('All three record answers have equal targets and emphasis with no default selection', async () => {
+  const DoseRecordActions = await loadComponent('src/components/DoseRecordActions.tsx');
+  const saved = [];
+  const row = DoseRecordActions({ name: '비타민', onRecord(status) { saved.push(status); } });
+  const actions = row.props.children;
+  assert.equal(actions.length, 3);
+  const targets = actions.map(action => StyleSheet.flatten(action.props.style({ pressed: false })));
+  assert.ok(targets.every(style => style.minHeight >= 48 && style.minWidth >= 48));
+  assert.deepEqual(targets[0], targets[1]);
+  assert.deepEqual(targets[1], targets[2]);
+  for (const action of actions) {
+    assert.equal(action.props.accessibilityState.selected, false);
+    assert.equal(action.props.disabled, false);
+    action.props.onPress();
+  }
+  assert.deepEqual(saved, ['TAKEN', 'SKIPPED', 'UNKNOWN']);
+});
+
+test('Every record answer can be corrected in one tap and saving blocks all answers', async () => {
+  const DoseRecordActions = await loadComponent('src/components/DoseRecordActions.tsx');
+  const selectedStyles = [];
+  for (const current of ['TAKEN', 'SKIPPED', 'UNKNOWN']) {
+    const saved = [];
+    const actions = DoseRecordActions({ status: current, onRecord(status) { saved.push(status); } }).props.children;
+    const selected = actions.find(action => action.props.accessibilityState.selected);
+    selectedStyles.push(StyleSheet.flatten(selected.props.style({ pressed: false })));
+    for (const action of actions) action.props.onPress();
+    assert.deepEqual(saved, ['TAKEN', 'SKIPPED', 'UNKNOWN'].filter(status => status !== current));
+    const blocked = DoseRecordActions({ status: current, disabled: true, onRecord() { throw new Error('saving must block actions'); } }).props.children;
+    for (const action of blocked) { assert.equal(action.props.disabled, true); action.props.onPress(); }
+  }
+  assert.deepEqual(selectedStyles[0], selectedStyles[1]);
+  assert.deepEqual(selectedStyles[1], selectedStyles[2]);
 });
 
 test('RitualSurface variants forward accessibility props and caller styles', async () => {

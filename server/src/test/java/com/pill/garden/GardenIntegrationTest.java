@@ -70,20 +70,44 @@ class GardenIntegrationTest {
         assertThat(days.findByUserIdAndStampDate(user.getId(), TODAY)).isPresent();
     }
 
-    @Test void allScheduledOccurrencesMustBeTakenAndDuplicateTapsEarnOnlyOnce() {
+    @Test void allScheduledOccurrencesMustBeRecordedAndDuplicateTapsEarnOnlyOnce() {
         var first = product("09:00,19:00");
         var second = product("21:00");
         taken(first, "09:00");
-        taken(first, "19:00");
+        service.logDose(user.getId(), first.getId(), new DoseLogRequest("UNKNOWN", "", "19:00"));
         assertThat(garden.state(user.getId()).totalStamps()).isZero();
         service.logDose(user.getId(), second.getId(), new DoseLogRequest("SKIPPED", "", "21:00"));
-        assertThat(garden.state(user.getId()).totalStamps()).isZero();
+        assertThat(garden.state(user.getId()).totalStamps()).isEqualTo(1);
         taken(second, "21:00");
         taken(second, "21:00");
         var result = garden.state(user.getId());
         assertThat(result.totalStamps()).isEqualTo(1);
         assertThat(result.todayEarned()).isTrue();
         assertThat(result.stampDates()).containsExactly(TODAY);
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"SKIPPED", "UNKNOWN"})
+    void everyExplicitAnswerEarnsTheSameDailyStamp(String status) {
+        var product = product("09:00,19:00");
+        service.logDose(user.getId(), product.getId(), new DoseLogRequest(status, "", "09:00"));
+        assertThat(garden.state(user.getId()).todayEarned()).isFalse();
+        service.logDose(user.getId(), product.getId(), new DoseLogRequest(status, "", "19:00"));
+        var result = garden.state(user.getId());
+        assertThat(result.totalStamps()).isEqualTo(1);
+        assertThat(result.todayEarned()).isTrue();
+        assertThat(service.doseHistory(user.getId(), 7).summary().taken()).isZero();
+        assertThat(service.doseHistory(user.getId(), 7).summary().completionRate()).isZero();
+    }
+
+    @Test void legacyUnawardedDayCanEarnOnCorrectionButNotOnDuplicateInput() {
+        var product = product("09:00");
+        assertThat(garden.state(user.getId()).todayEarned()).isFalse();
+        logs.saveAndFlush(new DoseLog(product, TODAY, "09:00", "SKIPPED", "existing record before upgrade"));
+        service.logDose(user.getId(), product.getId(), new DoseLogRequest("SKIPPED", "updated memo", "09:00"));
+        assertThat(garden.state(user.getId()).totalStamps()).isZero();
+        service.logDose(user.getId(), product.getId(), new DoseLogRequest("UNKNOWN", "", "09:00"));
+        assertThat(garden.state(user.getId()).totalStamps()).isEqualTo(1);
     }
 
     @Test void moreThanTwentyProductsRemainVisibleAndPartOfTheSameDailyGoal() {
@@ -99,20 +123,23 @@ class GardenIntegrationTest {
         assertThat(garden.state(user.getId()).totalStamps()).isEqualTo(1);
     }
 
-    @Test void undoRetractsOnlyTodayAndTakingAgainRestoresOneStamp() {
+    @Test void correctionsAndClearingKeepTodaysRewardWithoutCreatingAnother() {
         var product = product("09:00");
         previousStamp(TODAY.minusDays(3));
         taken(product, "09:00");
         assertThat(garden.state(user.getId()).totalStamps()).isEqualTo(2);
         service.clearDoseLog(user.getId(), product.getId(), "09:00");
         var undone = garden.state(user.getId());
-        assertThat(undone.totalStamps()).isEqualTo(1);
-        assertThat(undone.todayEarned()).isFalse();
-        assertThat(undone.stampDates()).containsExactly(TODAY.minusDays(3));
+        assertThat(undone.totalStamps()).isEqualTo(2);
+        assertThat(undone.todayEarned()).isTrue();
+        assertThat(undone.stampDates()).containsExactly(TODAY.minusDays(3), TODAY);
         taken(product, "09:00");
         assertThat(garden.state(user.getId()).totalStamps()).isEqualTo(2);
         service.logDose(user.getId(), product.getId(), new DoseLogRequest("SKIPPED", "", "09:00"));
-        assertThat(garden.state(user.getId()).totalStamps()).isEqualTo(1);
+        assertThat(garden.state(user.getId()).totalStamps()).isEqualTo(2);
+        service.logDose(user.getId(), product.getId(), new DoseLogRequest("UNKNOWN", "", "09:00"));
+        assertThat(garden.state(user.getId()).totalStamps()).isEqualTo(2);
+        assertThat(service.home(user.getId()).todayDoses()).allMatch(dose -> "UNKNOWN".equals(dose.status()));
     }
 
     @Test void firstObservationRecognizesExistingTodayButNeverBackfillsHistory() {
@@ -134,13 +161,13 @@ class GardenIntegrationTest {
         assertThat(garden.state(user.getId()).totalStamps()).isZero();
     }
 
-    @Test void removingPendingTimeCannotManufactureStampButNewTakenTransitionCanEarn() {
+    @Test void removingPendingTimeCannotManufactureStampButNewRecordCanEarn() {
         var product = product("09:00,19:00");
         logs.saveAndFlush(new DoseLog(product, TODAY, "09:00", "TAKEN", ""));
         service.updateDoseTimes(user.getId(), product.getId(), new UpdateDoseTimesRequest(List.of("09:00")));
         assertThat(garden.state(user.getId()).totalStamps()).isZero();
         service.clearDoseLog(user.getId(), product.getId(), "09:00");
-        taken(product, "09:00");
+        service.logDose(user.getId(), product.getId(), new DoseLogRequest("UNKNOWN", "", "09:00"));
         assertThat(garden.state(user.getId()).totalStamps()).isEqualTo(1);
     }
 
@@ -170,9 +197,10 @@ class GardenIntegrationTest {
         assertThat(result.selectedStamp()).isEqualTo("flower");
         service.clearDoseLog(user.getId(), product.getId(), "09:00");
         var undone = garden.state(user.getId());
-        assertThat(undone.completedPlants()).isZero();
-        assertThat(undone.selectedPot()).isEqualTo("clay");
-        assertThat(undone.selectedStamp()).isEqualTo("leaf");
+        assertThat(undone.completedPlants()).isEqualTo(1);
+        assertThat(undone.selectedPot()).isEqualTo("cloud");
+        assertThat(undone.selectedStamp()).isEqualTo("flower");
+        assertThat(garden.selectStyle(user.getId(), "cloud", "flower").totalStamps()).isEqualTo(7);
     }
 
     @Test void laterDayDoesNotRecomputeOrErasePreviousEarnedDay() {
@@ -182,7 +210,7 @@ class GardenIntegrationTest {
         var later = garden.state(user.getId());
         assertThat(later.todayEarned()).isFalse();
         assertThat(later.totalStamps()).isEqualTo(1);
-        garden.recordChanged(user.getId(), product.getId(), TODAY, "09:00", "SKIPPED", false);
+        garden.recordChanged(user.getId(), TODAY, "SKIPPED", false);
         assertThat(garden.state(user.getId()).stampDates()).containsExactly(TODAY);
     }
 

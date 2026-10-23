@@ -206,7 +206,7 @@ export async function scheduleSupplementReminders(
     return deps.scheduleNotificationAsync({
       content: {
         title: `${label} 챙기실 시간이에요 💊`,
-        body: '드신 뒤 PILL에서 체크해 주세요.',
+        body: '이번 시간은 어땠나요? PILL에서 편하게 기록해 주세요.',
         sound: 'default',
         data: {
           supplementId: options.supplementId,

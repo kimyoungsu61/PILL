@@ -12,6 +12,7 @@ import type { RootStackParamList } from '../navigation/AppNavigator';
 import { colors } from '../theme';
 import { contentRailWidth } from '../utils/responsiveLayout';
 import { filterSupplementsForSearch } from './SupplementsScreen.helpers';
+import { summarizeDoseRecords } from '../utils/doseRecord';
 
 type RootNavigation = NativeStackNavigationProp<RootStackParamList>;
 
@@ -84,8 +85,8 @@ export default function SupplementsScreen() {
               const displayName = supplement.displayNameKo || supplement.productName || '제품명 미상';
               const schedule = home.todayDoses.filter(dose => dose.supplementId === supplement.id);
               const times = Array.from(new Set(schedule.map(dose => dose.confirmedTime).filter(Boolean)));
-              const completed = schedule.filter(dose => dose.status === 'TAKEN').length;
-              const statusText = schedule.length ? `오늘 ${completed}/${schedule.length} 완료` : '시간 미설정';
+              const completed = summarizeDoseRecords(schedule).recorded;
+              const statusText = schedule.length ? `오늘 ${completed}/${schedule.length} 기록` : '시간 미설정';
               return (
                 <Pressable key={supplement.id} accessibilityRole="button"
                   accessibilityLabel={`${displayName}, ${statusText}, 상세 보기`}

@@ -14,6 +14,7 @@ public record DoseHistoryResponse(
         long total,
         long taken,
         long skipped,
+        long unknown,
         long missed,
         int completionRate
     ) {

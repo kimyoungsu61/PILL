@@ -5,10 +5,10 @@ const dose: ReminderDose = { supplementId: 1, name: '마그네슘', doseDate: '2
 function assert(value: boolean) { if (!value) throw new Error('Reminder confirmation mismatch'); }
 
 // Saved status takes precedence over a snooze timestamp (including another device's record).
-for (const status of ['TAKEN', 'SKIPPED']) {
+for (const [status, label] of [['TAKEN', '먹었어요'], ['SKIPPED', '못 먹었어요'], ['UNKNOWN', '기억이 안 나요']]) {
   const saved = reminderConfirmation({ ...dose, status, nextReminderAt: 'invalid' });
-  assert(saved.title === (status === 'TAKEN' ? '복용 완료로 기록했어요' : '이번 복용을 건너뛰었어요'));
-  assert(saved.detail.includes(dose.name) && saved.detail.includes('2026.10.20 23:59'));
+  assert(saved.title === '기록을 저장했어요');
+  assert(saved.detail.includes(dose.name) && saved.detail.includes('2026.10.20 23:59') && saved.detail.includes(label));
 }
 // Use the server's actual next date/time, including a snooze crossing midnight.
 const nextReminderAt = '2026-10-21T00:14:00+09:00';

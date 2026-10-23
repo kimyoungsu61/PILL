@@ -1,4 +1,5 @@
 import { apiRequest } from '../api/client';
+import type { DoseStatus } from '../api/types';
 
 const SUBSCRIPTION_KEY = 'pill.web-push.subscription';
 let workerPromise: Promise<ServiceWorkerRegistration> | undefined;
@@ -79,7 +80,7 @@ export function getReminderDose(token: string, state: WebPushState, supplementId
   return apiRequest<ReminderDose>('/api/web-push/subscriptions/' + encodeURIComponent(state.id) + '/doses/' + supplementId
     + '?doseDate=' + encodeURIComponent(doseDate) + '&doseTime=' + encodeURIComponent(doseTime), {}, token);
 }
-export function actOnReminderDose(token: string, state: WebPushState, dose: Pick<ReminderDose, 'supplementId' | 'doseDate' | 'doseTime'>, action: 'TAKEN' | 'SKIPPED' | 'SNOOZE') {
+export function actOnReminderDose(token: string, state: WebPushState, dose: Pick<ReminderDose, 'supplementId' | 'doseDate' | 'doseTime'>, action: DoseStatus | 'SNOOZE') {
   return apiRequest<ReminderDose>('/api/web-push/subscriptions/' + encodeURIComponent(state.id) + '/doses/' + dose.supplementId,
     { method: 'POST', body: JSON.stringify({ doseDate: dose.doseDate, doseTime: dose.doseTime, action }) }, token);
 }
