@@ -3,6 +3,7 @@ package com.pill.notification;
 import com.pill.auth.SessionPrincipal;
 import com.pill.garden.GardenService;
 import com.pill.model.DoseLog;
+import com.pill.model.DoseStatus;
 import com.pill.repository.DoseLogRepository;
 import com.pill.repository.UserSupplementRepository;
 import java.time.Clock;
@@ -112,18 +113,19 @@ public class WebPushFollowUps {
             }
             var previous = followUps.find(reminder.id(), date);
             schedule(reminder, date, next, previous == null ? 0 : previous.sentCount(), "SNOOZE", settings);
-        } else if ("TAKEN".equals(action) || "SKIPPED".equals(action)) {
+        } else if (DoseStatus.isRecorded(action)) {
             garden.prepareChange(principal.userId());
-            // A repeated tap must not change a completed occurrence into a different state.
-            if (current.status().isBlank()) {
+            // An identical tap is idempotent; an explicit correction is allowed while active.
+            if (!action.equals(current.status())) {
                 var supplement = supplements.findByIdAndUserId(supplementId, principal.userId()).orElseThrow();
-                var log = logs.findBySupplementIdAndDoseDateAndDoseTime(supplementId, date, time)
-                    .orElseGet(() -> new DoseLog(supplement, date, time, action, ""));
+                var existing = logs.findBySupplementIdAndDoseDateAndDoseTime(supplementId, date, time);
+                boolean newlyRecorded = existing.map(log -> !action.equals(log.getStatus())).orElse(true);
+                var log = existing.orElseGet(() -> new DoseLog(supplement, date, time, action, ""));
                 log.update(action, log.getMemo()); logs.saveAndFlush(log);
-                garden.recordChanged(principal.userId(), supplementId, date, time, action, "TAKEN".equals(action));
+                garden.recordChanged(principal.userId(), date, action, newlyRecorded);
             }
             store.cancelFollowUps(supplementId, date, time);
-        } else throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "복용 완료, 미루기 또는 건너뛰기를 선택해 주세요.");
+        } else throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "먹었어요, 못 먹었어요, 기억이 안 나요 또는 미루기를 선택해 주세요.");
         return view(reminder, date);
     }
 
@@ -152,7 +154,7 @@ public class WebPushFollowUps {
         var time = reminder.doseTime();
         boolean followUp = followUpNumber > 0;
         return Map.of("title", reminder.productName() + (followUp ? ", 챙겨 드셨나요? 💊" : " 챙기실 시간이에요 💊"),
-            "body", followUp ? "드셨다면 PILL에서 체크해 주세요." : "드신 뒤 PILL에서 체크해 주세요.",
+            "body", "이번 시간은 어땠나요? PILL에 편하게 기록해 주세요.",
             // A new logical alert needs a new tag: replacing the initial notification can
             // be silent, and renotify is not supported consistently across browsers.
             // A transport retry reuses this sequence, preserving notification deduplication.

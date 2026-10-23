@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { CalendarDays, CheckCircle2, ChevronRight, History, RefreshCw, XCircle } from 'lucide-react-native';
+import { CalendarDays, CheckCircle2, ChevronRight, CircleHelp, CircleMinus, History, RefreshCw } from 'lucide-react-native';
 import { apiRequest } from '../api/client';
 import type { DoseHistoryEntry, DoseHistoryResponse } from '../api/types';
 import { useAuth } from '../auth/AuthContext';
@@ -20,6 +20,7 @@ import type { RootStackParamList } from '../navigation/AppNavigator';
 import { colors, radius, spacing, type } from '../theme';
 import { contentRailWidth } from '../utils/responsiveLayout';
 import {
+  doseHistoryStatusLabel,
   formatDoseHistoryDate,
   formatDoseHistoryTime,
   formatHistoryRange,
@@ -38,7 +39,7 @@ const rangeOptions: Array<{ days: RangeDays; label: string }> = [
 const emptyHistory: DoseHistoryResponse = {
   from: '',
   to: '',
-  summary: { total: 0, taken: 0, skipped: 0, missed: 0, completionRate: 0 },
+  summary: { total: 0, taken: 0, skipped: 0, unknown: 0, missed: 0, completionRate: 0 },
   entries: [],
 };
 
@@ -76,7 +77,7 @@ export default function DoseHistoryScreen({ navigation }: Props) {
       <View style={[styles.rail, { maxWidth: contentRailWidth(width) }]}>
         <View style={styles.header}>
           <Text style={styles.title}>복용 기록</Text>
-          <Text style={styles.subtitle}>예정 시간이 지났는데 체크하지 않은 회차도 미복용으로 자동 집계해요.</Text>
+          <Text style={styles.subtitle}>남긴 답을 그대로 모았어요. 기록하지 않은 시간은 미기록으로 구분해요.</Text>
         </View>
 
         <View accessibilityLabel="조회 기간" style={styles.rangeRow}>
@@ -111,7 +112,7 @@ export default function DoseHistoryScreen({ navigation }: Props) {
         <RitualSurface style={styles.summaryCard} variant="active">
           <View style={styles.summaryHeading}>
             <View>
-              <Text style={styles.summaryLabel}>복용 완료율</Text>
+              <Text style={styles.summaryLabel}>먹었다고 기록한 비율</Text>
             </View>
             <View style={styles.historyIcon}>
               <History color={colors.primaryText} size={22} strokeWidth={2.6} />
@@ -132,23 +133,28 @@ export default function DoseHistoryScreen({ navigation }: Props) {
               <CheckCircle2 color={colors.completed} size={19} strokeWidth={2.6} />
               <View>
                 <Text style={styles.statValue}>{history.summary.taken}</Text>
-                <Text style={styles.statLabel}>복용 완료</Text>
+                <Text style={styles.statLabel}>먹었어요</Text>
               </View>
             </View>
-            <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <XCircle color={colors.danger} size={19} strokeWidth={2.6} />
+              <CircleMinus color={colors.completed} size={19} strokeWidth={2.6} />
               <View>
                 <Text style={styles.statValue}>{history.summary.skipped}</Text>
-                <Text style={styles.statLabel}>건너뜀</Text>
+                <Text style={styles.statLabel}>못 먹었어요</Text>
               </View>
             </View>
-            <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <XCircle color={colors.danger} size={19} strokeWidth={2.6} />
+              <CircleHelp color={colors.completed} size={19} strokeWidth={2.6} />
+              <View>
+                <Text style={styles.statValue}>{history.summary.unknown ?? 0}</Text>
+                <Text style={styles.statLabel}>기억이 안 나요</Text>
+              </View>
+            </View>
+            <View style={styles.statItem}>
+              <CircleMinus color={colors.muted} size={19} strokeWidth={2.6} />
               <View>
                 <Text style={styles.statValue}>{history.summary.missed}</Text>
-                <Text style={styles.statLabel}>미복용</Text>
+                <Text style={styles.statLabel}>미기록</Text>
               </View>
             </View>
           </View>
@@ -168,7 +174,7 @@ export default function DoseHistoryScreen({ navigation }: Props) {
               <CalendarDays color={colors.active} size={23} strokeWidth={2.5} />
             </View>
             <Text style={styles.emptyTitle}>아직 집계할 복용 회차가 없어요</Text>
-            <Text style={styles.emptyBody}>복용 예정 시간이 지나면 완료·건너뜀·미복용 상태가 날짜별로 정리됩니다.</Text>
+            <Text style={styles.emptyBody}>먹었는지, 못 먹었는지, 기억이 나지 않는지도 날짜별로 모아볼 수 있어요.</Text>
           </RitualSurface>
         ) : null}
 
@@ -197,9 +203,8 @@ export default function DoseHistoryScreen({ navigation }: Props) {
 }
 
 function HistoryRow({ entry, isLast, onPress }: { entry: DoseHistoryEntry; isLast: boolean; onPress: () => void }) {
-  const taken = entry.status === 'TAKEN';
-  const skipped = entry.status === 'SKIPPED';
-  const statusLabel = taken ? '완료' : skipped ? '건너뜀' : '미복용';
+  const recorded = entry.status !== 'MISSED';
+  const statusLabel = doseHistoryStatusLabel(entry.status);
   const name = entry.displayNameKo || entry.productName || '영양제';
   return (
     <Pressable
@@ -208,7 +213,7 @@ function HistoryRow({ entry, isLast, onPress }: { entry: DoseHistoryEntry; isLas
       onPress={onPress}
       style={({ pressed }) => [styles.entryRow, !isLast && styles.entryDivider, pressed && styles.pressed]}
     >
-      <SupplementThumb supplementId={entry.supplementId} imageUri={entry.imageUri} name={name} size={48} muted={!taken} />
+      <SupplementThumb supplementId={entry.supplementId} imageUri={entry.imageUri} name={name} size={48} muted={!recorded} />
       <View style={styles.entryCopy}>
         <Text numberOfLines={1} style={styles.entryName}>{name}</Text>
         <Text style={styles.entryTime}>{formatDoseHistoryTime(entry.doseTime)}</Text>
@@ -217,11 +222,11 @@ function HistoryRow({ entry, isLast, onPress }: { entry: DoseHistoryEntry; isLas
       <View style={styles.entryTrailing}>
         <View style={[
           styles.statusBadge,
-          taken ? styles.takenBadge : skipped ? styles.skippedBadge : styles.missedBadge,
+          recorded ? styles.recordedBadge : styles.unrecordedBadge,
         ]}>
           <Text style={[
             styles.statusText,
-            taken ? styles.takenText : skipped ? styles.skippedText : styles.missedText,
+            recorded ? styles.recordedText : styles.unrecordedText,
           ]}>
             {statusLabel}
           </Text>
@@ -257,9 +262,8 @@ const styles = StyleSheet.create({
   rangeLabel: { color: colors.muted, fontSize: 12, fontWeight: '600' },
   progressTrack: { backgroundColor: colors.surfaceMuted, borderRadius: 999, height: 8, overflow: 'hidden' },
   progressFill: { backgroundColor: colors.primary, borderRadius: 999, height: '100%' },
-  statsRow: { alignItems: 'center', borderTopColor: colors.line, borderTopWidth: 1, flexDirection: 'row', paddingTop: spacing.md },
-  statItem: { alignItems: 'center', flex: 1, flexDirection: 'row', gap: spacing.sm, justifyContent: 'center' },
-  statDivider: { backgroundColor: colors.line, height: 34, width: 1 },
+  statsRow: { borderTopColor: colors.line, borderTopWidth: 1, flexDirection: 'row', flexWrap: 'wrap', rowGap: spacing.md, paddingTop: spacing.md },
+  statItem: { alignItems: 'center', width: '50%', flexDirection: 'row', gap: spacing.sm },
   statValue: { color: colors.ink, fontSize: 17, fontWeight: '700' },
   statLabel: { color: colors.muted, fontSize: 11, fontWeight: '600', marginTop: 2 },
   error: { color: colors.danger, fontSize: 14, lineHeight: 20 },
@@ -283,12 +287,10 @@ const styles = StyleSheet.create({
   entryMemo: { color: colors.faint, fontSize: 11, marginTop: 2 },
   entryTrailing: { alignItems: 'center', flexDirection: 'row', gap: spacing.sm },
   statusBadge: { borderRadius: 999, paddingHorizontal: spacing.sm, paddingVertical: 6 },
-  takenBadge: { backgroundColor: colors.completedSoft },
-  skippedBadge: { backgroundColor: colors.warningSoft },
-  missedBadge: { backgroundColor: colors.dangerSoft },
+  recordedBadge: { backgroundColor: colors.completedSoft },
+  unrecordedBadge: { backgroundColor: colors.surfaceMuted },
   statusText: { fontSize: 11, fontWeight: '700' },
-  takenText: { color: colors.completed },
-  skippedText: { color: colors.warning },
-  missedText: { color: colors.danger },
+  recordedText: { color: colors.completed },
+  unrecordedText: { color: colors.muted },
   pressed: { opacity: 0.74 },
 });

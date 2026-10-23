@@ -29,6 +29,8 @@ import SupplementDetailScreen from '../screens/SupplementDetailScreen';
 import SupplementsScreen from '../screens/SupplementsScreen';
 import TodayScreen from '../screens/TodayScreen';
 import GardenScreen from '../screens/GardenScreen';
+import GardenCelebration from '../garden/GardenCelebration';
+import { useGardenGrowth } from '../garden/GardenGrowthContext';
 import AccountScreen from '../screens/AccountScreen';
 import PasswordResetScreen from '../screens/PasswordResetScreen';
 import type { ReminderConfirmation } from '../notifications/reminderConfirmation';
@@ -128,6 +130,7 @@ function MainTabs() {
 
 export default function AppNavigator() {
   const { token, isLoading } = useAuth();
+  const { celebration, dismissGrowth } = useGardenGrowth();
   const navigationRef = useNavigationContainerRef<RootStackParamList>();
 
   const pendingWebSupplement = useRef<DoseNotificationTarget | null>(null);
@@ -248,6 +251,8 @@ export default function AppNavigator() {
           <Stack.Screen name="PasswordReset" component={PasswordResetScreen} options={{ title: '비밀번호 재설정' }} />
         </Stack.Navigator>
       </NavigationContainer>
+      {token && celebration ? <GardenCelebration key={celebration.id} growth={celebration}
+        onClose={dismissGrowth} onOpen={() => { dismissGrowth(); if (navigationRef.isReady()) navigationRef.navigate('Garden'); }} /> : null}
     </SafeAreaProvider>
   );
 }

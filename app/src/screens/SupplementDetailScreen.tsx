@@ -2,11 +2,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { CheckCircle2, ChevronDown, Clock3, History, Plus, Save, Trash2, X, XCircle } from 'lucide-react-native';
+import { ChevronDown, Clock3, History, Plus, Save, Trash2, X } from 'lucide-react-native';
 import { apiRequest } from '../api/client';
 import type { DoseStatus, ProductInformation, SupplementDetailResponse } from '../api/types';
 import { useAuth } from '../auth/AuthContext';
 import RitualAction from '../components/RitualAction';
+import DoseRecordActions from '../components/DoseRecordActions';
 import RitualSurface from '../components/RitualSurface';
 import SupplementThumb from '../components/SupplementThumb';
 import TimePickerField from '../components/TimePickerField';
@@ -18,7 +19,10 @@ import { cancelSupplementReminders, scheduleSupplementReminders } from '../notif
 import { enableRegisteredSupplementReminders, type RegistrationReminders } from '../notifications/registrationReminders';
 import { colors, radius, spacing, type } from '../theme';
 import { clearTodayDetailDoseLog } from '../utils/supplementDetailDisplay';
+import { doseRecordLabel } from '../utils/doseRecord';
 import { contentRailWidth, supportsSupportingColumn } from '../utils/responsiveLayout';
+import { readGarden } from '../garden/requests';
+import { useGardenGrowth } from '../garden/GardenGrowthContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'SupplementDetail'>;
 
@@ -26,10 +30,6 @@ function todayKey() {
   const now = new Date();
   const local = new Date(now.getTime() - now.getTimezoneOffset() * 60_000);
   return local.toISOString().slice(0, 10);
-}
-
-function doseStatusText(status: DoseStatus) {
-  return status === 'TAKEN' ? '복용 완료' : '건너뜀';
 }
 
 function parseDoseTimes(value?: string) {
@@ -53,6 +53,8 @@ function defaultDoseTime(index: number) {
 
 export default function SupplementDetailScreen({ navigation, route }: Props) {
   const { token } = useAuth();
+  const { observeGarden } = useGardenGrowth();
+  const doseWriteInFlight = useRef(false);
   const { width } = useWindowDimensions();
   const isCompactIdentity = width < 380;
   const [detail, setDetail] = useState<SupplementDetailResponse | null>(null);
@@ -148,32 +150,43 @@ export default function SupplementDetailScreen({ navigation, route }: Props) {
   }
 
   async function postDose(status: DoseStatus, doseTime: string) {
+    if (doseWriteInFlight.current) return;
     if (!token) {
       setError('로그인이 필요합니다.');
       return;
     }
 
+    doseWriteInFlight.current = true;
     setIsPosting(true);
     setError('');
     try {
+      const before = await readGarden(token, 2000).catch(() => null);
+      if (!navigation.isFocused()) return;
+      if (before) observeGarden(before, false);
       await apiRequest<void>(`/api/supplements/${route.params.supplementId}/dose-logs`, {
         method: 'POST',
         body: JSON.stringify({ status, memo: '', doseTime }),
       }, token);
       await loadDetail();
+      // Garden availability must not turn a saved dose into a failed write.
+      const next = await readGarden(token, 4000).catch(() => null);
+      if (next && navigation.isFocused()) observeGarden(next);
     } catch (err) {
       setError(err instanceof Error ? err.message : '복용 체크를 저장하지 못했습니다.');
     } finally {
+      doseWriteInFlight.current = false;
       setIsPosting(false);
     }
   }
 
   async function clearDose(doseTime: string) {
+    if (doseWriteInFlight.current) return;
     if (!token || !detail) {
       setError('로그인이 필요합니다.');
       return;
     }
 
+    doseWriteInFlight.current = true;
     const previousDetail = detail;
     setDetail(clearTodayDetailDoseLog(detail, doseTime));
     setIsPosting(true);
@@ -187,6 +200,7 @@ export default function SupplementDetailScreen({ navigation, route }: Props) {
       setDetail(previousDetail);
       setError(err instanceof Error ? err.message : '복용 기록을 취소하지 못했습니다.');
     } finally {
+      doseWriteInFlight.current = false;
       setIsPosting(false);
     }
   }
@@ -194,18 +208,6 @@ export default function SupplementDetailScreen({ navigation, route }: Props) {
   function logDose(doseTime: string, status: DoseStatus) {
     const todayStatus = todayStatusFor(doseTime);
     if (todayStatus === status) {
-      return;
-    }
-
-    if (todayStatus) {
-      Alert.alert(
-        '복용 기록을 수정할까요?',
-        `오늘 기록이 이미 ${doseStatusText(todayStatus)} 상태입니다. ${doseStatusText(status)} 상태로 바꿀까요?`,
-        [
-          { text: '취소', style: 'cancel' },
-          { text: '수정', style: 'default', onPress: () => void postDose(status, doseTime) },
-        ],
-      );
       return;
     }
 
@@ -368,7 +370,7 @@ export default function SupplementDetailScreen({ navigation, route }: Props) {
                 <RitualSurface style={styles.todaySurface}>
                   <View style={styles.todayHeading}>
                     <View>
-                      <Text style={styles.surfaceTitle}>오늘의 복용</Text>
+                      <Text style={styles.surfaceTitle}>오늘의 기록</Text>
                     </View>
                     <Text style={styles.todayCount}>{todaySummary.done}/{todaySummary.total}</Text>
                   </View>
@@ -429,31 +431,16 @@ export default function SupplementDetailScreen({ navigation, route }: Props) {
                             <Clock3 size={17} color={colors.active} strokeWidth={2.4} />
                             <Text style={styles.doseTimeText}>{doseTime}</Text>
                           </View>
-                          <Text style={[styles.doseStatus, status === 'TAKEN' && styles.completedStatus]}>
-                            {status ? doseStatusText(status) : '기록 대기'}
+                          <Text style={[styles.doseStatus, Boolean(status) && styles.completedStatus]}>
+                            {doseRecordLabel(status)}
                           </Text>
                         </View>
-                        <View style={styles.doseActions}>
-                          <View style={styles.doseActionCell}>
-                            <RitualAction
-                              disabled={isPosting || status === 'TAKEN'}
-                              fullWidth
-                              icon={<CheckCircle2 color={colors.primaryText} size={18} strokeWidth={2.5} />}
-                              label={status === 'TAKEN' ? '완료됨' : '복용 완료'}
-                              onPress={() => logDose(doseTime, 'TAKEN')}
-                            />
-                          </View>
-                          <View style={styles.doseActionCell}>
-                            <RitualAction
-                              disabled={isPosting || status === 'SKIPPED'}
-                              fullWidth
-                              icon={<XCircle color={colors.ink} size={18} strokeWidth={2.5} />}
-                              label={status === 'SKIPPED' ? '건너뜀' : '건너뛰기'}
-                              onPress={() => logDose(doseTime, 'SKIPPED')}
-                              tone="secondary"
-                            />
-                          </View>
-                        </View>
+                        <DoseRecordActions
+                          status={status}
+                          disabled={isPosting}
+                          name={`${detail.displayNameKo || detail.productName || '영양제'} ${doseTime}`}
+                          onRecord={(nextStatus) => logDose(doseTime, nextStatus)}
+                        />
                         {status ? (
                           <Pressable
                             accessibilityRole="button"
@@ -577,8 +564,8 @@ function ProductFacts({ detail, guide }: { detail: SupplementDetailResponse; gui
             style={[styles.logRow, index > 0 && styles.factDivider]}
           >
             <Text style={styles.logDate}>{[log.doseDate, log.doseTime].filter(Boolean).join(' · ')}</Text>
-            <Text style={[styles.logStatus, log.status === 'TAKEN' && styles.completedStatus]}>
-              {log.status === 'TAKEN' ? '완료' : '건너뜀'}
+            <Text style={[styles.logStatus, styles.completedStatus]}>
+              {doseRecordLabel(log.status)}
             </Text>
           </View>
         )) : <Text style={styles.emptyText}>아직 복용 기록이 없습니다.</Text>}
@@ -819,14 +806,6 @@ const styles = StyleSheet.create({
   },
   completedStatus: {
     color: colors.completed,
-  },
-  doseActions: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  doseActionCell: {
-    flex: 1,
-    minWidth: 0,
   },
   clearButton: {
     alignItems: 'center',

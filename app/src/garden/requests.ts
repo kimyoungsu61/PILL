@@ -1,16 +1,16 @@
 import { apiRequest } from '../api/client';
 import type { GardenPot, GardenStamp, GardenState } from './types';
 
-type Request = (path: string, options: RequestInit, token: string) => Promise<GardenState>;
+type Request = (path: string, options: RequestInit, token: string, timeoutMs?: number) => Promise<GardenState>;
 
 // Keep pending style writes across stack-screen unmounts. A newly opened garden
 // must not read an older selection while the previous screen is still saving.
 export function createGardenRequests(request: Request) {
   let pendingStyle: Promise<GardenState> | null = null;
   return {
-    async read(token: string) {
+    async read(token: string, timeoutMs?: number) {
       while (pendingStyle) await pendingStyle.catch(() => undefined);
-      return request('/api/garden', {}, token);
+      return request('/api/garden', {}, token, timeoutMs);
     },
     save(token: string, choice: { pot: GardenPot; stamp: GardenStamp }) {
       // Never queue an unsent mutation: a browser-session cookie can belong to a
@@ -24,6 +24,6 @@ export function createGardenRequests(request: Request) {
   };
 }
 
-const requests = createGardenRequests((path, options, token) => apiRequest<GardenState>(path, options, token));
+const requests = createGardenRequests((path, options, token, timeoutMs) => apiRequest<GardenState>(path, options, token, timeoutMs));
 export const readGarden = requests.read;
 export const saveGardenStyle = requests.save;

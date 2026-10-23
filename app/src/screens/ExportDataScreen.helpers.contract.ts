@@ -51,8 +51,25 @@ if (!supplementCsv.includes('"Healthy ""Lab"""') || !supplementCsv.includes('"\'
 }
 
 const doseCsv = buildDoseHistoryCsv(data);
-if (!doseCsv.includes('"복용 완료"') || !doseCsv.includes('"아침, 식후"')) {
+if (!doseCsv.includes('"먹었어요"') || !doseCsv.includes('"아침, 식후"')) {
   throw new Error('Dose CSV should localize statuses and preserve comma-containing memos.');
+}
+
+const mixedStatusCsv = buildDoseHistoryCsv({
+  ...data,
+  doseHistory: {
+    ...data.doseHistory,
+    entries: (['TAKEN', 'SKIPPED', 'UNKNOWN', 'MISSED'] as const).map((status) => ({
+      ...data.doseHistory.entries[0], status,
+      checkedAt: status === 'MISSED' ? undefined : '2026-07-29T09:01:00',
+    })),
+  },
+});
+for (const label of ['먹었어요', '못 먹었어요', '기억이 안 나요', '미기록']) {
+  if (!mixedStatusCsv.includes(`"${label}"`)) throw new Error(`CSV lost the distinct ${label} status.`);
+}
+if (mixedStatusCsv.includes('미복용') || mixedStatusCsv.includes('건너뜀')) {
+  throw new Error('CSV must not infer a missed dose from a missing record.');
 }
 if (exportFileStamp(data.generatedAt) !== '20260729_1630') {
   throw new Error('Export filenames should use a stable timestamp.');

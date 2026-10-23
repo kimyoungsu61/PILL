@@ -1,4 +1,9 @@
-import type { DoseHistoryEntry } from '../api/types';
+import type { DoseHistoryEntry, DoseHistoryStatus } from '../api/types';
+import { doseRecordLabel } from '../utils/doseRecord';
+
+export function doseHistoryStatusLabel(status: DoseHistoryStatus) {
+  return status === 'MISSED' ? '미기록' : doseRecordLabel(status);
+}
 
 export type DoseHistoryGroup = {
   date: string;

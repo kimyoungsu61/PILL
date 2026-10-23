@@ -5,8 +5,8 @@ import java.time.LocalDate;
 import java.util.Collection;
 
 /**
- * One durable entry per user/day. Completion keys are deliberately not foreign
- * keys to products: deleting a product must not erase a previously earned day.
+ * One permanent reward per user/day. Completion keys are deliberately not foreign
+ * keys to products: correcting records or deleting products cannot erase an earned day.
  */
 @Entity
 @Table(name = "garden_day", uniqueConstraints = @UniqueConstraint(
@@ -31,11 +31,5 @@ public class GardenDay {
     public void earn(Collection<String> keys) {
         earned = true;
         completionKeys = "\n" + String.join("\n", keys) + "\n";
-    }
-    public void undo(String key) {
-        if (earned && completionKeys.contains("\n" + key + "\n")) {
-            earned = false;
-            completionKeys = "";
-        }
     }
 }

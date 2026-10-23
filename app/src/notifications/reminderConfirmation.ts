@@ -1,12 +1,12 @@
 import type { ReminderDose } from './webPush';
+import { doseRecordLabel, isRecordedDose } from '../utils/doseRecord';
 
 export type ReminderConfirmation = { title: string; detail: string };
 
 export function reminderConfirmation(dose: ReminderDose): ReminderConfirmation {
   const occurrence = `${dose.name} · ${dose.doseDate.replaceAll('-', '.')} ${dose.doseTime}`;
   // Another device may already have recorded this dose. Always describe the saved result.
-  if (dose.status === 'TAKEN') return { title: '복용 완료로 기록했어요', detail: occurrence };
-  if (dose.status === 'SKIPPED') return { title: '이번 복용을 건너뛰었어요', detail: occurrence };
+  if (isRecordedDose(dose.status)) return { title: '기록을 저장했어요', detail: `${occurrence} · ${doseRecordLabel(dose.status)}` };
   const next = dose.nextReminderAt ? new Date(dose.nextReminderAt) : null;
   if (next && Number.isFinite(next.getTime())) {
     const time = next.toLocaleString('ko-KR', { month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' });

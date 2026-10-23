@@ -7,12 +7,18 @@ import type { RootStackParamList } from '../navigation/AppNavigator';
 import { actOnReminderDose, getReminderDose, getWebPushState, webPushError, type ReminderDose, type WebPushState } from '../notifications/webPush';
 import { reminderConfirmation } from '../notifications/reminderConfirmation';
 import RitualAction from '../components/RitualAction';
+import DoseRecordActions from '../components/DoseRecordActions';
 import RitualSurface from '../components/RitualSurface';
 import { colors } from '../theme';
+import { readGarden } from '../garden/requests';
+import { useGardenGrowth } from '../garden/GardenGrowthContext';
+import type { DoseStatus } from '../api/types';
+import { doseRecordLabel, isRecordedDose } from '../utils/doseRecord';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'DoseReminder'>;
 export default function DoseReminderScreen({ route, navigation }: Props) {
   const { token } = useAuth();
+  const { observeGarden } = useGardenGrowth();
   const [state, setState] = useState<WebPushState | null>(null);
   const [dose, setDose] = useState<ReminderDose | null>(null);
   const [loading, setLoading] = useState(true);
@@ -41,13 +47,20 @@ export default function DoseReminderScreen({ route, navigation }: Props) {
     })();
     return () => { session.active = false; };
   }, [token, supplementId, doseDate, doseTime]));
-  async function act(action: 'TAKEN' | 'SKIPPED' | 'SNOOZE') {
+  async function act(action: DoseStatus | 'SNOOZE') {
     if (!token || !state || !dose || loading || inFlight.current) return;
     const session = focusSession.current;
     const isCurrent = () => session?.active && session === focusSession.current
       && occurrence === currentOccurrence.current && navigation.isFocused();
     inFlight.current = true; setBusy(true); setError('');
     try {
+      // The notification flow resets the home screen. Preserve a confirmed
+      // baseline in the shared session before the write, even on a cold launch.
+      if (action !== 'SNOOZE') {
+        const before = await readGarden(token, 2000).catch(() => null);
+        if (!isCurrent()) return;
+        if (before) observeGarden(before, false);
+      }
       const result = await actOnReminderDose(token, state, dose, action);
       if (!isCurrent()) return;
       const confirmation = reminderConfirmation(result);
@@ -64,12 +77,16 @@ export default function DoseReminderScreen({ route, navigation }: Props) {
     {loading ? <ActivityIndicator accessibilityLabel="복용 기록 확인 중" color={colors.active} /> : dose ? <RitualSurface style={styles.card}>
       <Text style={styles.date}>{dose.doseDate.replaceAll('-', '.')} · {dose.doseTime}</Text>
       <Text style={styles.title}>{dose.name}</Text>
-      <Text style={styles.body}>{dose.status === 'TAKEN' ? '복용 완료로 기록된 일정이에요.' : dose.status === 'SKIPPED' ? '건너뛴 것으로 기록된 일정이에요.' : dose.active ? '이번 복용을 기록해 주세요.' : '지난 알림이에요. 오늘의 복용에서 현재 일정을 확인해 주세요.'}</Text>
+      <Text style={styles.body}>{!dose.active ? '지난 알림이에요. 오늘의 복용에서 현재 일정을 확인해 주세요.' : isRecordedDose(dose.status) ? `‘${doseRecordLabel(dose.status)}’로 기록했어요. 다른 답을 눌러 바로 바꿀 수 있어요.` : '이번 시간은 어땠나요? 편하게 기록해 주세요.'}</Text>
       {dose.nextReminderAt ? <Text style={styles.body}>{new Date(dose.nextReminderAt).toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit' })}에 다시 알려드릴 예정이에요.</Text> : null}
-      {dose.active && !dose.status ? <>
-        <RitualAction fullWidth label="복용 완료" loading={busy} onPress={() => void act('TAKEN')} />
-        {dose.canSnooze ? <RitualAction fullWidth tone="secondary" label="15분 뒤 다시 알림" disabled={busy} onPress={() => void act('SNOOZE')} /> : null}
-        <RitualAction fullWidth tone="quiet" label="이번 복용 건너뛰기" disabled={busy} onPress={() => void act('SKIPPED')} />
+      {dose.active ? <>
+        <DoseRecordActions
+          status={isRecordedDose(dose.status) ? dose.status : undefined}
+          disabled={busy}
+          name={dose.name}
+          onRecord={(status) => void act(status)}
+        />
+        {!isRecordedDose(dose.status) && dose.canSnooze ? <RitualAction fullWidth tone="secondary" label="15분 뒤 다시 알림" disabled={busy} onPress={() => void act('SNOOZE')} /> : null}
       </> : null}
     </RitualSurface> : null}
     {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}

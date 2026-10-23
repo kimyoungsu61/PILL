@@ -110,7 +110,7 @@ class WebPushIntegrationTest {
         when(clock.instant()).thenReturn(Instant.parse("2026-10-07T00:00:10Z"));dispatcher.dispatch(id);dispatcher.dispatch(id);
         verify(sender,times(1)).send(any(),argThat(payload->payload instanceof Map<?,?> map
             && "마그네슘 챙기실 시간이에요 💊".equals(map.get("title"))
-            && "드신 뒤 PILL에서 체크해 주세요.".equals(map.get("body"))));
+            && "이번 시간은 어땠나요? PILL에 편하게 기록해 주세요.".equals(map.get("body"))));
         assertThat(store.delivery(id,LocalDate.of(2026,10,7)).status()).isEqualTo("SENT");
     }
     @Test void retriesTransientFailureWithoutDuplicateSuccessfulDelivery() throws Exception {
@@ -231,8 +231,8 @@ class WebPushIntegrationTest {
         assertThat(followUpStore.find(id,LocalDate.of(2026,10,7)).sentCount()).isEqualTo(2);
         assertThat(followUpStore.due(clock.instant())).isEmpty();
     }
-    @Test void takenOrSkippedFromNormalProductScreenCancelsAllDevicesFollowUps() throws Exception {
-        for(var status:List.of("TAKEN","SKIPPED")) {
+    @Test void everyExplicitRecordFromNormalProductScreenCancelsAllDevicesFollowUps() throws Exception {
+        for(var status:List.of("TAKEN","SKIPPED","UNKNOWN")) {
             at("2026-10-06T23:59:00Z");
             var state=followEnabled("follow-record-"+status,1,2);var id=initial(state);
             supplementService.logDose(user.getId(),product.getId(),new com.pill.supplement.dto.DoseLogRequest(status,"","09:00"));
@@ -241,7 +241,7 @@ class WebPushIntegrationTest {
             at("2026-10-07T00:01:10Z");scheduler.tick();
             supplementService.clearDoseLog(user.getId(),product.getId(),"09:00");entityManager.flush();
         }
-        verify(sender,times(2)).send(any(),any());
+        verify(sender,times(3)).send(any(),any());
     }
     @Test void skippedDoseDoesNotSendEvenItsOriginalNotification() throws Exception {
         var state=followEnabled("follow-skipped-initial",1,1);
@@ -289,7 +289,7 @@ class WebPushIntegrationTest {
         at("2026-10-07T14:59:10Z");scheduler.tick();at("2026-10-07T15:00:10Z");scheduler.tick();scheduler.tick();
         verify(sender,times(2)).send(any(),any());
         verify(sender).send(any(),argThat(payload -> payload instanceof Map<?,?> map && "마그네슘, 챙겨 드셨나요? 💊".equals(map.get("title"))
-            && "드셨다면 PILL에서 체크해 주세요.".equals(map.get("body"))
+            && "이번 시간은 어땠나요? PILL에 편하게 기록해 주세요.".equals(map.get("body"))
             && ((Map<?,?>)map.get("data")).get("doseDate").equals("2026-10-07")));
         var result=followUps.action(principal,state.id(),product.getId(),LocalDate.of(2026,10,7),"23:59","TAKEN");
         assertThat(result.status()).isEqualTo("TAKEN");
@@ -328,7 +328,10 @@ class WebPushIntegrationTest {
         mvc.perform(get("/api/web-push/subscriptions/"+state.id()+"/doses/"+product.getId()).header("Authorization","Bearer "+strangerToken)
             .param("doseDate",date.toString()).param("doseTime","09:00")).andExpect(status().isNotFound());
         followUps.action(principal,state.id(),product.getId(),date,"09:00","TAKEN");
-        assertThat(followUps.action(principal,state.id(),product.getId(),date,"09:00","SKIPPED").status()).isEqualTo("TAKEN");
+        assertThat(followUps.action(principal,state.id(),product.getId(),date,"09:00","TAKEN").status()).isEqualTo("TAKEN");
+        assertThat(followUps.action(principal,state.id(),product.getId(),date,"09:00","SKIPPED").status()).isEqualTo("SKIPPED");
+        assertThat(followUps.action(principal,state.id(),product.getId(),date,"09:00","UNKNOWN").status()).isEqualTo("UNKNOWN");
+        assertThat(followUps.view(principal,state.id(),product.getId(),date,"09:00").canSnooze()).isFalse();
         assertThat(logs.findBySupplementIdAndDoseDate(product.getId(),date)).hasSize(1);
     }
     @Test void followUpTransientRetriesAreBoundedAndExpiredEndpointsStopTheDevice() throws Exception {
@@ -362,7 +365,7 @@ class WebPushIntegrationTest {
         followUps.action(principal,state.id(),product.getId(),date,"09:00","TAKEN");
         assertThat(garden.state(user.getId()).totalStamps()).isEqualTo(1);
         supplementService.clearDoseLog(user.getId(),product.getId(),"09:00");
-        assertThat(garden.state(user.getId()).totalStamps()).isZero();
+        assertThat(garden.state(user.getId()).totalStamps()).isEqualTo(1);
     }
 
     private WebPushService.State followEnabled(String suffix,int minutes,int count) throws Exception {

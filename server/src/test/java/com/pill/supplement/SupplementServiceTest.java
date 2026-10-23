@@ -56,9 +56,13 @@ class SupplementServiceTest {
     @Autowired BlockedIngredientRepository blockedIngredients;
 
     @Test
-    void takenAndSkippedAreAcceptedDoseStatuses() {
+    void allExplicitRecordsAreAcceptedButMissingAndInferredStatusesAreNot() {
         assertThat(SupplementService.isValidDoseStatus("TAKEN")).isTrue();
         assertThat(SupplementService.isValidDoseStatus("SKIPPED")).isTrue();
+        assertThat(SupplementService.isValidDoseStatus("UNKNOWN")).isTrue();
+        assertThat(SupplementService.isValidDoseStatus("MISSED")).isFalse();
+        assertThat(SupplementService.isValidDoseStatus("")).isFalse();
+        assertThat(SupplementService.isValidDoseStatus(null)).isFalse();
         assertThat(SupplementService.isValidDoseStatus("DONE")).isFalse();
     }
 

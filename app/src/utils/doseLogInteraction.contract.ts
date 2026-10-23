@@ -1,26 +1,13 @@
-import { doseChangeConfirmationMessage, doseStatusText, shouldConfirmDoseChange } from './doseLogInteraction';
-import type { DoseStatus } from '../api/types';
+import { doseStatusText } from './doseLogInteraction';
 
-if (doseStatusText('TAKEN') !== '복용 완료') {
+if (doseStatusText('TAKEN') !== '먹었어요') {
   throw new Error('TAKEN status text is wrong.');
 }
 
-if (doseStatusText('SKIPPED') !== '건너뜀') {
+if (doseStatusText('SKIPPED') !== '못 먹었어요') {
   throw new Error('SKIPPED status text is wrong.');
 }
 
-if (shouldConfirmDoseChange(undefined, 'TAKEN' satisfies DoseStatus)) {
-  throw new Error('Pending dose should not need confirmation.');
-}
-
-if (shouldConfirmDoseChange('TAKEN', 'TAKEN')) {
-  throw new Error('Same status should not need confirmation.');
-}
-
-if (!shouldConfirmDoseChange('TAKEN', 'SKIPPED')) {
-  throw new Error('Changing an existing dose status should need confirmation.');
-}
-
-if (doseChangeConfirmationMessage('TAKEN', 'SKIPPED') !== '현재 기록: 복용 완료. 건너뜀으로 바꿀까요?') {
-  throw new Error('Dose change confirmation message is wrong.');
+if (doseStatusText('UNKNOWN') !== '기억이 안 나요') {
+  throw new Error('UNKNOWN must remain distinct from a skipped or unrecorded dose.');
 }

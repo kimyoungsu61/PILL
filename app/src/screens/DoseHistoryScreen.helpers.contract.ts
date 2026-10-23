@@ -1,5 +1,6 @@
 import type { DoseHistoryEntry } from '../api/types';
 import {
+  doseHistoryStatusLabel,
   formatDoseHistoryDate,
   formatDoseHistoryTime,
   formatHistoryRange,
@@ -58,4 +59,18 @@ if (formatDoseHistoryTime('20:05') !== '오후 8:05') {
 }
 if (formatHistoryRange('2026-07-01', '2026-07-29') !== '7월 1일 – 7월 29일') {
   throw new Error('History range should use short Korean dates.');
+}
+
+const unknownEntry: DoseHistoryEntry = {
+  supplementId: 4, productName: 'Vitamin C', doseDate: '2026-07-29', doseTime: '21:00',
+  status: 'UNKNOWN', checkedAt: '2026-07-29T21:01:00',
+};
+const mixedGroup = groupDoseHistory([...entries, unknownEntry])[0];
+if (mixedGroup.entries.filter((entry) => entry.status === 'UNKNOWN').length !== 1
+  || mixedGroup.entries.filter((entry) => entry.status === 'MISSED').length !== 1) {
+  throw new Error('History must preserve uncertainty separately from absent records.');
+}
+if (doseHistoryStatusLabel('UNKNOWN') !== '기억이 안 나요' || doseHistoryStatusLabel('MISSED') !== '미기록'
+  || doseHistoryStatusLabel('TAKEN') !== '먹었어요' || doseHistoryStatusLabel('SKIPPED') !== '못 먹었어요') {
+  throw new Error('History must describe the saved answer without inferring adherence.');
 }

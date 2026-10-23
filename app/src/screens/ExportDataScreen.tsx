@@ -187,7 +187,7 @@ export default function ExportDataScreen({}: Props) {
           <View style={styles.statsGrid}>
             <SummaryStat label="영양제" value={data?.supplements.length ?? 0} />
             <SummaryStat label="복용 일정" value={summary?.total ?? 0} />
-            <SummaryStat label="완료율" suffix="%" value={summary?.completionRate ?? 0} />
+            <SummaryStat label="복용 비율" suffix="%" value={summary?.completionRate ?? 0} />
           </View>
           <Text style={styles.rangeLabel}>
             {data ? exportRangeLabel(data.doseHistory.from, data.doseHistory.to) : `최근 ${days}일`}
@@ -223,7 +223,7 @@ export default function ExportDataScreen({}: Props) {
                   title="영양제 목록.csv"
                 />
                 <ExportFileCard
-                  body={`${days}일 동안 완료·건너뜀·미복용을 포함한 ${summary?.total ?? 0}개 일정`}
+                  body={`${days}일 동안 ${summary?.total ?? 0}개 일정 · 먹었어요 ${summary?.taken ?? 0}회, 못 먹었어요 ${summary?.skipped ?? 0}회, 기억이 안 나요 ${summary?.unknown ?? 0}회, 미기록 ${summary?.missed ?? 0}회`}
                   icon={<ListChecks color={colors.completed} size={22} strokeWidth={2.5} />}
                   title="복용 기록.csv"
                 />

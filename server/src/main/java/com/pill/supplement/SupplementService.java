@@ -4,6 +4,7 @@ import com.pill.garden.GardenService;
 import com.pill.notification.WebPushService;
 import com.pill.notification.WebPushStore;
 import com.pill.model.DoseLog;
+import com.pill.model.DoseStatus;
 import com.pill.model.DoseSchedule;
 import com.pill.model.SupplementScan;
 import com.pill.model.UserSupplement;
@@ -69,7 +70,7 @@ public class SupplementService {
     }
 
     public static boolean isValidDoseStatus(String status) {
-        return "TAKEN".equals(status) || "SKIPPED".equals(status);
+        return DoseStatus.isRecorded(status);
     }
 
     @Transactional(readOnly = true)
@@ -152,13 +153,14 @@ public class SupplementService {
 
         var taken = entries.stream().filter(entry -> "TAKEN".equals(entry.status())).count();
         var skipped = entries.stream().filter(entry -> "SKIPPED".equals(entry.status())).count();
+        var unknown = entries.stream().filter(entry -> "UNKNOWN".equals(entry.status())).count();
         var missed = entries.stream().filter(entry -> "MISSED".equals(entry.status())).count();
-        var total = taken + skipped + missed;
+        var total = taken + skipped + unknown + missed;
         var completionRate = total == 0 ? 0 : (int) Math.round(taken * 100.0 / total);
         return new DoseHistoryResponse(
             from,
             to,
-            new DoseHistoryResponse.Summary(total, taken, skipped, missed, completionRate),
+            new DoseHistoryResponse.Summary(total, taken, skipped, unknown, missed, completionRate),
             entries
         );
     }
@@ -241,11 +243,11 @@ public class SupplementService {
         var today = LocalDate.now(clock);
         var doseTime = normalizeDoseTime(request.doseTime(), supplement);
         var existing = doseLogs.findBySupplementIdAndDoseDateAndDoseTime(supplement.getId(), today, doseTime);
-        boolean newlyTaken = "TAKEN".equals(request.status()) && existing.map(log -> !"TAKEN".equals(log.getStatus())).orElse(true);
+        boolean newlyRecorded = existing.map(log -> !request.status().equals(log.getStatus())).orElse(true);
         var doseLog = existing.orElseGet(() -> new DoseLog(supplement, today, doseTime, request.status(), request.memo()));
         doseLog.update(request.status(), request.memo());
         doseLogs.saveAndFlush(doseLog);
-        garden.recordChanged(userId, supplementId, today, doseTime, request.status(), newlyTaken);
+        garden.recordChanged(userId, today, request.status(), newlyRecorded);
         webPushStore.cancelFollowUps(supplementId, today, doseTime);
     }
 
@@ -258,7 +260,7 @@ public class SupplementService {
         doseLogs.findBySupplementIdAndDoseDateAndDoseTime(supplement.getId(), today, doseTime)
             .ifPresent(doseLogs::delete);
         doseLogs.flush();
-        garden.recordChanged(userId, supplementId, today, doseTime, "", false);
+        garden.recordChanged(userId, today, "", false);
     }
 
     @Transactional

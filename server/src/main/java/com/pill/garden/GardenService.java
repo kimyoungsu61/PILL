@@ -1,6 +1,7 @@
 package com.pill.garden;
 
 import com.pill.model.GardenDay;
+import com.pill.model.DoseStatus;
 import com.pill.model.GardenStyle;
 import com.pill.model.User;
 import com.pill.repository.*;
@@ -77,17 +78,16 @@ public class GardenService {
     }
 
     /**
-     * Called after a flushed record mutation. A real new TAKEN transition can earn;
+     * Called after a flushed record mutation. A newly recorded occurrence can earn;
      * duplicate taps, deletion, rescheduling and past notification actions cannot.
+     * Earned days are permanent: correcting an honest record must never cost a reward.
      */
     @Transactional
-    public void recordChanged(Long userId, Long supplementId, LocalDate date, String time,
-        String status, boolean newlyTaken) {
+    public void recordChanged(Long userId, LocalDate date, String status, boolean newlyRecorded) {
         var user = lockUser(userId);
         if (!LocalDate.now(clock).equals(date)) return;
         var day = day(user, date);
-        if (!"TAKEN".equals(status)) day.undo(key(supplementId, time));
-        else if (!day.isEarned() && newlyTaken) awardIfComplete(userId, day);
+        if (!day.isEarned() && newlyRecorded && DoseStatus.isRecorded(status)) awardIfComplete(userId, day);
     }
 
     private GardenDay day(User user, LocalDate date) {
@@ -113,7 +113,7 @@ public class GardenService {
             if (times.isEmpty() || times.stream().anyMatch(time -> !time.matches("(?:[01]\\d|2[0-3]):[0-5]\\d"))) return;
             var recorded = logs.findBySupplementIdAndDoseDate(product.getId(), day.getStampDate());
             for (var time : times) {
-                if (recorded.stream().noneMatch(log -> time.equals(log.getDoseTime()) && "TAKEN".equals(log.getStatus()))) return;
+                if (recorded.stream().noneMatch(log -> time.equals(log.getDoseTime()) && DoseStatus.isRecorded(log.getStatus()))) return;
                 completed.add(key(product.getId(), time));
             }
         }
@@ -124,8 +124,7 @@ public class GardenService {
         var dates = days.findByUserIdAndEarnedTrueOrderByStampDateAsc(userId).stream().map(GardenDay::getStampDate).toList();
         int total = dates.size();
         var style = styles.findById(userId).orElseGet(() -> new GardenStyle(userId));
-        // Undoing today's milestone also withdraws its unlock; the selection is
-        // remembered and becomes available again once seven completed days return.
+        // Existing rewards remain available even when the day's records are corrected.
         var pot = POTS.getOrDefault(style.getPot(), Integer.MAX_VALUE) <= total ? style.getPot() : "clay";
         var stamp = STAMPS.getOrDefault(style.getStamp(), Integer.MAX_VALUE) <= total ? style.getStamp() : "leaf";
         return new State(total, total % 7, total / 7, today.isEarned(), today.getStampDate(), dates, pot, stamp);
